@@ -19,6 +19,7 @@ public class FirstPersonController : MonoBehaviour
 
     [Header("Crosshair")]
     [SerializeField] private float crosshairSize = 6f;
+    [SerializeField] private float interactHintSize = 44f;
 
     [Header("Interaction")]
     [SerializeField] private float interactionDistance = 4f;
@@ -78,7 +79,7 @@ public class FirstPersonController : MonoBehaviour
 
     private void HandleCursor(Keyboard keyboard, Mouse mouse)
     {
-        if (keyboard.escapeKey.wasPressedThisFrame)
+        if (keyboard.escapeKey.wasPressedThisFrame)//TODO 游戏里暂停的光标进入和退出的逻辑没完善
         {
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
@@ -89,7 +90,7 @@ public class FirstPersonController : MonoBehaviour
         }
     }
 
-    private void OnGUI()
+    private void OnGUI()//TODO 查有什么用
     {
         if (!Application.isPlaying || Cursor.lockState != CursorLockMode.Locked)
         {
@@ -97,7 +98,7 @@ public class FirstPersonController : MonoBehaviour
         }
 
         bool showingHand = targetedHairDryer != null && !targetedHairDryer.IsHeld;
-        float size = showingHand ? 22f : crosshairSize;
+        float size = showingHand ? interactHintSize : crosshairSize;
         float halfSize = size * 0.5f;
         Rect crosshair = new Rect((Screen.width * 0.5f) - halfSize, (Screen.height * 0.5f) - halfSize, size, size);
 
@@ -157,21 +158,20 @@ public class FirstPersonController : MonoBehaviour
     {
         string[] pattern =
         {
-            "      XX      ",
-            "      XX      ",
-            "      XX      ",
-            "      XX      ",
-            "  X   XX      ",
-            " XXX  XXX     ",
-            " XXXXXXXXX    ",
-            " XXXXXXXXXX   ",
-            "  XXXXXXXXXX  ",
-            "   XXXXXXXXX  ",
-            "    XXXXXXX   ",
-            "     XXXXX    ",
-            "      XXX     ",
-            "      XX      "
+            "XXXXXXXXXXXX",
+            "XXXXXXXXXXXX",
+            "XX          ",
+            "XX          ",
+            "XX          ",
+            "XXXXXXXXXX  ",
+            "XXXXXXXXXX  ",
+            "XX          ",
+            "XX          ",
+            "XX          ",
+            "XXXXXXXXXXXX",
+            "XXXXXXXXXXXX"
         };
+
 
         Texture2D texture = new Texture2D(pattern[0].Length, pattern.Length, TextureFormat.RGBA32, false)
         {
@@ -223,7 +223,7 @@ public class FirstPersonController : MonoBehaviour
         {
             if (verticalVelocity < 0f)
             {
-                verticalVelocity = -2f;
+                verticalVelocity = -2f;//TODO 查为什么得这样设置
             }
 
             if (keyboard.spaceKey.wasPressedThisFrame)
