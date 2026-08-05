@@ -38,7 +38,7 @@ public class HairDryer : MonoBehaviour
         transform.SetParent(handParent, false);
         transform.localPosition = new Vector3(0.42f, -0.28f, 0.72f);
         transform.localRotation = Quaternion.identity;
-        pickupRigidbody.isKinematic = true;
+        pickupRigidbody.isKinematic = true;//MARKER 
         ApplyHeldState();
     }
 
@@ -109,7 +109,7 @@ public class HairDryer : MonoBehaviour
         Gizmos.DrawRay(origin, direction * windRange);
     }
 
-    private void ApplyHeldState()
+    private void ApplyHeldState()//TODO 如果开始游戏之后玩家发现地面上的吹风机在吹出粒子效果的风，光标移动识别，E键拾取停止吹风，按下左键再吹是不是这样有更好的引导作用
     {
         /*if (pickupCollider != null)
         {
