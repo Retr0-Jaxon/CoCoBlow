@@ -56,5 +56,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "CoCoBlow.sln"
+    "dotnet.defaultSolution": "CoCoBlow-from-link.sln"
 }

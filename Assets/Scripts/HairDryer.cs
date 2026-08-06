@@ -81,6 +81,7 @@ public class HairDryer : MonoBehaviour
 
         foreach (Collider hit in hits)
         {
+            TryToMakeCoconutDrop(hit);
             Rigidbody body = hit.attachedRigidbody;
             if (body == null || body.isKinematic || body.gameObject == gameObject)
             {
@@ -119,6 +120,15 @@ public class HairDryer : MonoBehaviour
         if (!isHeld && windEffect != null && windEffect.isPlaying)
         {
             windEffect.Stop();
+        }
+    }
+    private void TryToMakeCoconutDrop(Collider hit)
+    {
+        Coconut coconut = hit.GetComponentInParent<Coconut>();
+        if (coconut != null && !coconut.IsDropped)
+        {
+            coconut.Unfreeze();
+            Debug.Log("椰子掉落了！", coconut);
         }
     }
 }
