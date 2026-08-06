@@ -106,3 +106,5 @@ InitTestScene*.unity*
 /[Aa]ssets/[Ss]ceneDependencyCache*
 .idea/.idea.CoCoBlow/.idea/vcs.xml
 .idea/.idea.CoCoBlow/.idea/indexLayout.xml
+.idea/.idea.CoCoBlow/.idea/workspace.xml
+.idea/.idea.CoCoBlow/.idea/projectSettingsUpdater.xml
