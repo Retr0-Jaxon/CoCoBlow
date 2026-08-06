@@ -108,3 +108,6 @@ InitTestScene*.unity*
 .idea/.idea.CoCoBlow/.idea/indexLayout.xml
 .idea/.idea.CoCoBlow/.idea/workspace.xml
 .idea/.idea.CoCoBlow/.idea/projectSettingsUpdater.xml
+
+# Editor personal settings
+.vscode/
