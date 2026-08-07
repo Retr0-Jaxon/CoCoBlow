@@ -86,7 +86,7 @@ public class HairDryer : MonoBehaviour
         foreach (Collider hit in hits)
         {
             Rigidbody body = hit.attachedRigidbody;
-            if (body == null || body.isKinematic || body.gameObject == gameObject)
+            if (body == null || body.gameObject == gameObject)
             {
                 continue;
             }
@@ -100,7 +100,26 @@ public class HairDryer : MonoBehaviour
 
             float distanceFalloff = 1f - Mathf.Clamp01(distance / windRange);
             float angleFalloff = Mathf.InverseLerp(windAngle, 0f, Vector3.Angle(direction, toTarget));
-            body.AddForce(direction * (windForce * distanceFalloff * angleFalloff), ForceMode.Force);
+            float forceMagnitude = windForce * distanceFalloff * angleFalloff;
+
+            Coconut coconut = body.GetComponent<Coconut>();
+            if (coconut != null && coconut.IsAttached)
+            {
+                coconut.ApplyWindForce(direction, forceMagnitude);
+                continue;
+            }
+
+            if (coconut != null && !coconut.CanReceiveWindForce)
+            {
+                continue;
+            }
+
+            if (body.isKinematic)
+            {
+                continue;
+            }
+
+            body.AddForce(direction * forceMagnitude, ForceMode.Force);
         }
     }
 
