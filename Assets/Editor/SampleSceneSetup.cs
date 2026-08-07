@@ -195,7 +195,32 @@ internal static class SampleSceneSetup
         SerializedObject serializedWind = new SerializedObject(wind);
         serializedWind.FindProperty("nozzle").objectReferenceValue = nozzle.transform;
         serializedWind.FindProperty("isHeld").boolValue = false;
+
+        HairDryerRangeVisual rangeVisual = CreateRangeVisual(nozzle.transform);
+        if (rangeVisual != null)
+        {
+            serializedWind.FindProperty("rangeVisual").objectReferenceValue = rangeVisual;
+        }
+
         serializedWind.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static HairDryerRangeVisual CreateRangeVisual(Transform nozzleTransform)
+    {
+        const string prefabPath = "Assets/Prefabs/HairDryerRangeVisual.prefab";
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+        if (prefab == null)
+        {
+            return null;
+        }
+
+        GameObject rangeVisualObject = (GameObject)PrefabUtility.InstantiatePrefab(prefab, nozzleTransform);
+        rangeVisualObject.name = "RangeVisual";
+        rangeVisualObject.transform.localPosition = Vector3.zero;
+        rangeVisualObject.transform.localRotation = Quaternion.identity;
+        rangeVisualObject.transform.localScale = Vector3.one;
+        Undo.RegisterCreatedObjectUndo(rangeVisualObject, "Create Hair Dryer Range Visual");
+        return rangeVisualObject.GetComponent<HairDryerRangeVisual>();
     }
 
     private static bool PrepareHairDryerForGround(GameObject dryer)
