@@ -2480,8 +2480,7 @@ MonoBehaviour:
   spawnOnStart: 1
   coconutScoreValue: 1
   releaseWindForceThreshold: 120
-  releaseImpulse: 6
-  spawnTimer: 0
+  releaseImpulse: 2
 --- !u!1 &1854050862
 GameObject:
   m_ObjectHideFlags: 0

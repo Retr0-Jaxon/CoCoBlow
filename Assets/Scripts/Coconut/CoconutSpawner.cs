@@ -3,27 +3,22 @@ using UnityEngine;
 
 public class CoconutSpawner : MonoBehaviour
 {
+    [Header("References")]
     [SerializeField] private GameObject coconutPrefab;
     [SerializeField] private CoconutSpawnPoint[] spawnPoints;
+
+    [Header("Spawn Settings")]
     [SerializeField] private float spawnInterval = 8f;
     [SerializeField] private int maxActiveCoconuts = 5;
     [SerializeField] private bool spawnOnStart = true;
+
+    [Header("Coconut Settings")]
     [SerializeField] private int coconutScoreValue = 1;
     [SerializeField] private float releaseWindForceThreshold = 120f;
-    [SerializeField] private float releaseImpulse = 6f;
+    [SerializeField] private float releaseImpulse = 2f;
 
-    [SerializeField] private float spawnTimer;
-
-    private readonly List<TreeCoconut> activeTreeCoconuts = new List<TreeCoconut>();
-
-    private class TreeCoconut
-    {
-        public CoconutSpawnPoint SpawnPoint;
-        public Coconut Coconut;
-        public Rigidbody Body;
-        public float AccumulatedWind;
-        public bool Released;
-    }
+    private readonly List<Coconut> activeCoconuts = new List<Coconut>();
+    private float spawnTimer;
 
     private void Awake()
     {
@@ -35,143 +30,113 @@ public class CoconutSpawner : MonoBehaviour
 
     private void Start()
     {
+        spawnTimer = spawnInterval;
+
         if (spawnOnStart)
         {
-            spawnTimer = spawnInterval;
+            FillAvailableSpawnPoints();
         }
     }
 
     private void Update()
     {
-        if (activeTreeCoconuts.Count < maxActiveCoconuts)
+        CleanupDestroyedCoconuts();
+
+        if (activeCoconuts.Count >= maxActiveCoconuts)
         {
-            spawnTimer -= Time.deltaTime;
-            if (spawnTimer <= 0f)
-            {
-                TrySpawnCoconut();
-                spawnTimer = spawnInterval;
-            }
+            return;
+        }
+
+        spawnTimer -= Time.deltaTime;
+        if (spawnTimer > 0f)
+        {
+            return;
+        }
+
+        if (TrySpawnCoconut())
+        {
+            spawnTimer = spawnInterval;
+        }
+        else
+        {
+            spawnTimer = 1f;
         }
     }
 
-    private void FixedUpdate()
+    public void SetSpawnInterval(float interval)
     {
-        for (int i = activeTreeCoconuts.Count - 1; i >= 0; i--)
-        {
-            TreeCoconut treeCoconut = activeTreeCoconuts[i];
-            if (treeCoconut.Released || treeCoconut.Coconut == null)
-            {
-                activeTreeCoconuts.RemoveAt(i);
-                continue;
-            }
+        spawnInterval = Mathf.Max(0.5f, interval);
+    }
 
-            if (treeCoconut.Body == null || !treeCoconut.Body.isKinematic)
-            {
-                treeCoconut.SpawnPoint?.ClearOccupant();
-                activeTreeCoconuts.RemoveAt(i);
-            }
+    public void SetMaxActiveCoconuts(int maxCount)
+    {
+        maxActiveCoconuts = Mathf.Max(1, maxCount);
+    }
+
+    public void UnregisterCoconut(Coconut coconut)
+    {
+        activeCoconuts.Remove(coconut);
+    }
+
+    private void FillAvailableSpawnPoints()
+    {
+        while (activeCoconuts.Count < maxActiveCoconuts && TrySpawnCoconut())
+        {
         }
     }
 
-    public void RegisterWindForce(Coconut coconut, float forceMagnitude)
+    private bool TrySpawnCoconut()
     {
-        if (forceMagnitude <= 0f || coconut == null)
+        if (coconutPrefab == null || activeCoconuts.Count >= maxActiveCoconuts)
         {
-            return;
+            return false;
         }
 
-        for (int i = 0; i < activeTreeCoconuts.Count; i++)
+        CoconutSpawnPoint point = FindFreeSpawnPoint();
+        if (point == null)
         {
-            TreeCoconut treeCoconut = activeTreeCoconuts[i];
-            if (treeCoconut.Released || treeCoconut.Coconut != coconut)
-            {
-                continue;
-            }
-
-            treeCoconut.AccumulatedWind += forceMagnitude * Time.fixedDeltaTime;
-            if (treeCoconut.AccumulatedWind >= releaseWindForceThreshold)
-            {
-                ReleaseCoconut(treeCoconut);
-            }
-
-            return;
-        }
-    }
-
-    private void TrySpawnCoconut()
-    {
-        if (coconutPrefab == null || spawnPoints == null || spawnPoints.Length == 0)
-        {
-            return;
+            return false;
         }
 
-        CoconutSpawnPoint spawnPoint = GetFreeSpawnPoint();
-        if (spawnPoint == null)
-        {
-            return;
-        }
-
-        GameObject coconutObject = Instantiate(coconutPrefab, spawnPoint.transform.position, spawnPoint.transform.rotation, spawnPoint.transform);
-        Coconut coconut = coconutObject.GetComponent<Coconut>();
+        GameObject instance = Instantiate(coconutPrefab, point.transform.position, point.transform.rotation);
+        Coconut coconut = instance.GetComponent<Coconut>();
         if (coconut == null)
         {
-            Destroy(coconutObject);
-            return;
+            coconut = instance.AddComponent<Coconut>();
         }
 
-        if (!spawnPoint.TryOccupy(coconut))
+        if (!point.TryOccupy(coconut))
         {
-            Destroy(coconutObject);
-            return;
+            Destroy(instance);
+            return false;
         }
 
-        Rigidbody body = coconutObject.GetComponent<Rigidbody>();
-        if (body == null)
-        {
-            body = coconutObject.AddComponent<Rigidbody>();
-        }
-
-        body.isKinematic = true;
-        body.useGravity = false;
-
-        activeTreeCoconuts.Add(new TreeCoconut
-        {
-            SpawnPoint = spawnPoint,
-            Coconut = coconut,
-            Body = body
-        });
+        coconut.Initialize(this, point, coconutScoreValue, releaseWindForceThreshold, releaseImpulse);
+        activeCoconuts.Add(coconut);
+        return true;
     }
 
-    private CoconutSpawnPoint GetFreeSpawnPoint()
+    private CoconutSpawnPoint FindFreeSpawnPoint()
     {
-        for (int i = 0; i < spawnPoints.Length; i++)
+        foreach (CoconutSpawnPoint point in spawnPoints)
         {
-            if (spawnPoints[i] != null && !spawnPoints[i].IsOccupied)
+            if (point != null && !point.IsOccupied)
             {
-                return spawnPoints[i];
+                return point;
             }
         }
 
         return null;
     }
 
-    private void ReleaseCoconut(TreeCoconut treeCoconut)
+    private void CleanupDestroyedCoconuts()
     {
-        if (treeCoconut.Released || treeCoconut.Body == null)
+        for (int i = activeCoconuts.Count - 1; i >= 0; i--)
         {
-            return;
+            if (activeCoconuts[i] == null)
+            {
+                activeCoconuts.RemoveAt(i);
+            }
         }
-
-        treeCoconut.Released = true;
-        treeCoconut.SpawnPoint?.ClearOccupant();
-
-        Transform coconutTransform = treeCoconut.Coconut.transform;
-        coconutTransform.SetParent(null, true);
-
-        treeCoconut.Body.isKinematic = false;
-        treeCoconut.Body.useGravity = true;
-
-        Vector3 releaseDirection = -Physics.gravity.normalized;
-        treeCoconut.Body.AddForce(releaseDirection * releaseImpulse, ForceMode.VelocityChange);
     }
 }
