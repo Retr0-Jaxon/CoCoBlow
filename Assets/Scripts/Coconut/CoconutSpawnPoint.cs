@@ -4,7 +4,6 @@ public class CoconutSpawnPoint : MonoBehaviour
 {
     [SerializeField] private Coconut occupyingCoconut;
 
-    public Coconut OccupyingCoconut => occupyingCoconut;
     public bool IsOccupied => occupyingCoconut != null;
 
     public bool TryOccupy(Coconut coconut)
@@ -21,5 +20,11 @@ public class CoconutSpawnPoint : MonoBehaviour
     public void ClearOccupant()
     {
         occupyingCoconut = null;
+    }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = IsOccupied ? new Color(1f, 0.5f, 0f, 0.8f) : new Color(0.2f, 1f, 0.3f, 0.8f);
+        Gizmos.DrawWireSphere(transform.position, 0.18f);
     }
 }
