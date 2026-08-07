@@ -11,20 +11,29 @@ public class HairDryer : MonoBehaviour
 
     [Header("Visuals")]
     [SerializeField] private Transform nozzle;
-    [SerializeField] private ParticleSystem windEffect;
+    [SerializeField] private HairDryerRangeVisual rangeVisual;
     [SerializeField] private bool isHeld;
 
     public bool IsHeld => isHeld;
+    public float WindRange => windRange;
+    public float WindAngle => windAngle;
+    public Transform Nozzle => nozzle;
+    public bool ShouldShowRangeVisual => !isHeld || isBlowingPhysics;
 
-    private bool isBlowing;
+    private bool isBlowingPhysics;
     private Collider pickupCollider;
     private Rigidbody pickupRigidbody;
 
     private void Awake()
     {
-        pickupRigidbody =  GetComponent<Rigidbody>();
+        pickupRigidbody = GetComponent<Rigidbody>();
         pickupCollider = GetComponent<Collider>();
         ApplyHeldState();
+    }
+
+    private void Start()
+    {
+        UpdateRangeVisual();
     }
 
     public void PickUp(Transform handParent)
@@ -38,7 +47,7 @@ public class HairDryer : MonoBehaviour
         transform.SetParent(handParent, false);
         transform.localPosition = new Vector3(0.42f, -0.28f, 0.72f);
         transform.localRotation = Quaternion.identity;
-        pickupRigidbody.isKinematic = true;//MARKER 
+        pickupRigidbody.isKinematic = true;
         ApplyHeldState();
     }
 
@@ -51,32 +60,27 @@ public class HairDryer : MonoBehaviour
         ApplyHeldState();
     }
 
+    public void GetWindOriginAndDirection(out Vector3 origin, out Vector3 direction)
+    {
+        origin = nozzle != null ? nozzle.position : transform.position;
+        direction = nozzle != null ? nozzle.up : transform.forward;
+    }
+
     private void Update()
     {
-        isBlowing = isHeld && (!blowOnLeftMouse || (Mouse.current != null && Mouse.current.leftButton.isPressed));
-
-        if (windEffect != null)
-        {
-            if (isBlowing && !windEffect.isPlaying)
-            {
-                windEffect.Play();
-            }
-            else if (!isBlowing && windEffect.isPlaying)
-            {
-                windEffect.Stop();
-            }
-        }
+        bool mousePressed = IsMouseBlowPressed();
+        isBlowingPhysics = isHeld && mousePressed;
+        UpdateRangeVisual();
     }
 
     private void FixedUpdate()
     {
-        if (!isBlowing)
+        if (!isBlowingPhysics)
         {
             return;
         }
 
-        Vector3 origin = nozzle != null ? nozzle.position : transform.position;
-        Vector3 direction = nozzle != null ? nozzle.up : transform.forward;
+        GetWindOriginAndDirection(out Vector3 origin, out Vector3 direction);
         Collider[] hits = Physics.OverlapSphere(origin, windRange);
 
         foreach (Collider hit in hits)
@@ -102,23 +106,36 @@ public class HairDryer : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        Vector3 origin = nozzle != null ? nozzle.position : transform.position;
-        Vector3 direction = nozzle != null ? nozzle.up : transform.forward;
+        GetWindOriginAndDirection(out Vector3 origin, out Vector3 direction);
         Gizmos.color = new Color(0.2f, 0.75f, 1f, 0.3f);
         Gizmos.DrawWireSphere(origin, windRange);
         Gizmos.DrawRay(origin, direction * windRange);
     }
 
-    private void ApplyHeldState()//TODO 如果开始游戏之后玩家发现地面上的吹风机在吹出粒子效果的风，光标移动识别，E键拾取停止吹风，按下左键再吹是不是这样有更好的引导作用
+    private void ApplyHeldState()
     {
-        /*if (pickupCollider != null)
-        {
-            pickupCollider.enabled = !isHeld;
-        }*/
+        UpdateRangeVisual();
+    }
 
-        if (!isHeld && windEffect != null && windEffect.isPlaying)
+    private bool IsMouseBlowPressed()
+    {
+        return !blowOnLeftMouse || (Mouse.current != null && Mouse.current.leftButton.isPressed);
+    }
+
+    private void UpdateRangeVisual()
+    {
+        if (rangeVisual == null)
         {
-            windEffect.Stop();
+            return;
+        }
+
+        if (ShouldShowRangeVisual)
+        {
+            rangeVisual.Play();
+        }
+        else
+        {
+            rangeVisual.StopFade();
         }
     }
 }
