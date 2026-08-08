@@ -6,6 +6,7 @@ public class FirstPersonController : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private Transform cameraRoot;
+    [SerializeField] private SimplePanelUI panelUI;
 
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 5f;
@@ -30,6 +31,7 @@ public class FirstPersonController : MonoBehaviour
     private float verticalVelocity;
     private float cameraPitch;
     private HairDryer targetedHairDryer;
+    private IInteractable targetedInteractable;
     private Texture2D handCursorTexture;
 
     private void Awake()
@@ -39,6 +41,11 @@ public class FirstPersonController : MonoBehaviour
         if (cameraRoot == null && Camera.main != null)
         {
             cameraRoot = Camera.main.transform;
+        }
+
+        if (panelUI == null)
+        {
+            panelUI = FindObjectOfType<SimplePanelUI>();
         }
 
         handCursorTexture = CreateHandCursorTexture();
@@ -79,6 +86,11 @@ public class FirstPersonController : MonoBehaviour
 
     private void HandleCursor(Keyboard keyboard, Mouse mouse)
     {
+        if (IsPanelOpen())
+        {
+            return;
+        }
+
         if (keyboard.escapeKey.wasPressedThisFrame)//TODO 游戏里暂停的光标进入和退出的逻辑没完善
         {
             Cursor.lockState = CursorLockMode.None;
@@ -97,7 +109,7 @@ public class FirstPersonController : MonoBehaviour
             return;
         }
 
-        bool showingHand = targetedHairDryer != null && !targetedHairDryer.IsHeld;
+        bool showingHand = HasInteractTarget();
         float size = showingHand ? interactHintSize : crosshairSize;
         float halfSize = size * 0.5f;
         Rect crosshair = new Rect((Screen.width * 0.5f) - halfSize, (Screen.height * 0.5f) - halfSize, size, size);
@@ -110,7 +122,20 @@ public class FirstPersonController : MonoBehaviour
 
     private void HandleInteraction(Keyboard keyboard)
     {
-        targetedHairDryer = FindTargetedHairDryer();
+        if (IsPanelOpen())
+        {
+            targetedHairDryer = null;
+            targetedInteractable = null;
+            return;
+        }
+
+        FindInteractionTargets(out targetedInteractable, out targetedHairDryer);
+
+        if (keyboard.eKey.wasPressedThisFrame && targetedInteractable != null && targetedInteractable.CanInteract())
+        {
+            targetedInteractable.Interact();
+            return;
+        }
 
         if (keyboard.eKey.wasPressedThisFrame && targetedHairDryer != null && !targetedHairDryer.IsHeld)
         {
@@ -127,15 +152,51 @@ public class FirstPersonController : MonoBehaviour
         }
     }
 
-    private HairDryer FindTargetedHairDryer()
+    private void FindInteractionTargets(out IInteractable interactable, out HairDryer hairDryer)
     {
+        interactable = null;
+        hairDryer = null;
+
         if (cameraRoot == null || !Physics.Raycast(cameraRoot.position, cameraRoot.forward,
-                out RaycastHit hit, interactionDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                out RaycastHit hit, interactionDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide))
         {
-            return null;
+            return;
         }
 
-        return hit.collider.GetComponentInParent<HairDryer>();
+        NoteInteract note = hit.collider.GetComponentInParent<NoteInteract>();
+        if (note != null && note.CanInteract())
+        {
+            interactable = note;
+            return;
+        }
+
+        ChairInteract chair = hit.collider.GetComponentInParent<ChairInteract>();
+        if (chair != null && chair.CanInteract())
+        {
+            interactable = chair;
+            return;
+        }
+
+        HairDryer dryer = hit.collider.GetComponentInParent<HairDryer>();
+        if (dryer != null && !dryer.IsHeld)
+        {
+            hairDryer = dryer;
+        }
+    }
+
+    private bool HasInteractTarget()
+    {
+        if (targetedInteractable != null && targetedInteractable.CanInteract())
+        {
+            return true;
+        }
+
+        return targetedHairDryer != null && !targetedHairDryer.IsHeld;
+    }
+
+    private bool IsPanelOpen()
+    {
+        return panelUI != null && panelUI.IsOpen;
     }
 
     private void DropHairDryer(HairDryer hairDryer)
@@ -195,7 +256,7 @@ public class FirstPersonController : MonoBehaviour
 
     private void HandleLook(Mouse mouse)
     {
-        if (cameraRoot == null || Cursor.lockState != CursorLockMode.Locked)
+        if (IsPanelOpen() || cameraRoot == null || Cursor.lockState != CursorLockMode.Locked)
         {
             return;
         }
@@ -209,6 +270,11 @@ public class FirstPersonController : MonoBehaviour
 
     private void HandleMovement(Keyboard keyboard)
     {
+        if (IsPanelOpen())
+        {
+            return;
+        }
+
         Vector2 input = Vector2.zero;
 
         if (keyboard.wKey.isPressed) input.y += 1f;
