@@ -70,6 +70,22 @@ if ([string]::IsNullOrWhiteSpace($ext)) {
     }
 }
 
+$mergeExt = $ext
+$unityYamlExtensions = @(
+    '.asset',
+    '.mat',
+    '.anim',
+    '.controller',
+    '.overrideController',
+    '.playable',
+    '.mask',
+    '.physicMaterial',
+    '.physicsMaterial2D'
+)
+if ($unityYamlExtensions -contains $ext) {
+    $mergeExt = '.unity'
+}
+
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("unityyamlmerge-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tempRoot | Out-Null
 
@@ -82,7 +98,7 @@ function Copy-WithExtension {
         [string]$Name
     )
 
-    $destination = Join-Path $tempRoot ($Name + $ext)
+    $destination = Join-Path $tempRoot ($Name + $mergeExt)
     Copy-Item -LiteralPath $Source -Destination $destination -Force
     return $destination
 }
