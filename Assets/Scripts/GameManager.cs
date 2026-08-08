@@ -1,4 +1,14 @@
+using System;
 using UnityEngine;
+
+[Serializable]
+public class NoteEntry
+{
+    public GameObject noteObject;
+    [TextArea(3, 8)] public string content;
+    [HideInInspector] public bool unlocked;
+    [HideInInspector] public bool readForEnding;
+}
 
 public class GameManager : MonoBehaviour
 {
@@ -6,8 +16,12 @@ public class GameManager : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private SimpleHUD simpleHud;
+    [SerializeField] private SimplePanelUI simplePanelUI;
     [SerializeField] private HairDryer hairDryer;
     [SerializeField] private CoconutSpawner coconutSpawner;
+
+    [Header("Notes")]
+    [SerializeField] private NoteEntry[] notes;
 
     [Header("Upgrade")]
     [SerializeField] private int upgradeRequiredCoconuts = 3;
@@ -39,6 +53,11 @@ public class GameManager : MonoBehaviour
             simpleHud = FindObjectOfType<SimpleHUD>();
         }
 
+        if (simplePanelUI == null)
+        {
+            simplePanelUI = FindObjectOfType<SimplePanelUI>();
+        }
+
         if (hairDryer == null)
         {
             hairDryer = FindObjectOfType<HairDryer>();
@@ -52,6 +71,7 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
+        HideAllNotes();
         RefreshHud();
         UpdateUpgradeHint();
     }
@@ -79,10 +99,51 @@ public class GameManager : MonoBehaviour
         CoconutCount -= upgradeRequiredCoconuts;
         hasUpgraded = true;
         ApplyUpgradeEffects();
+        UnlockNotesAfterUpgrade();
         UpdateUpgradeHint();
         RefreshHud();
         Debug.Log($"升级成功！消耗 {upgradeRequiredCoconuts} 个椰子，剩余：{CoconutCount}", this);
         return true;
+    }
+
+    public bool CanReadNote(int index)
+    {
+        if (!IsValidNoteIndex(index) || simplePanelUI == null || simplePanelUI.IsOpen)
+        {
+            return false;
+        }
+
+        return notes[index].unlocked;
+    }
+
+    public string GetNoteContent(int index)
+    {
+        if (!IsValidNoteIndex(index))
+        {
+            return string.Empty;
+        }
+
+        return notes[index].content ?? string.Empty;
+    }
+
+    public void OnNoteRead(int index)
+    {
+        if (!IsValidNoteIndex(index) || !notes[index].unlocked)
+        {
+            return;
+        }
+
+        if (notes[index].readForEnding)
+        {
+            return;
+        }
+
+        notes[index].readForEnding = true;
+
+        if (simplePanelUI != null)
+        {
+            simplePanelUI.ShowEndingPanel();
+        }
     }
 
     private void ApplyUpgradeEffects()
@@ -96,6 +157,60 @@ public class GameManager : MonoBehaviour
         {
             coconutSpawner.SetSpawnInterval(spawnIntervalAfterUpgrade);
         }
+    }
+
+    private void UnlockNotesAfterUpgrade()
+    {
+        if (notes == null || notes.Length == 0)
+        {
+            return;
+        }
+
+        UnlockNote(0);
+    }
+
+    private void UnlockNote(int index)
+    {
+        if (!IsValidNoteIndex(index))
+        {
+            return;
+        }
+
+        notes[index].unlocked = true;
+
+        if (notes[index].noteObject != null)
+        {
+            notes[index].noteObject.SetActive(true);
+        }
+    }
+
+    private void HideAllNotes()
+    {
+        if (notes == null)
+        {
+            return;
+        }
+
+        foreach (NoteEntry note in notes)
+        {
+            if (note == null)
+            {
+                continue;
+            }
+
+            note.unlocked = false;
+            note.readForEnding = false;
+
+            if (note.noteObject != null)
+            {
+                note.noteObject.SetActive(false);
+            }
+        }
+    }
+
+    private bool IsValidNoteIndex(int index)
+    {
+        return notes != null && index >= 0 && index < notes.Length && notes[index] != null;
     }
 
     private void UpdateUpgradeHint()
