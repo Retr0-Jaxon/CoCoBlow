@@ -3,8 +3,7 @@ using UnityEngine;
 public class NoteInteract : MonoBehaviour, IInteractable
 {
     [SerializeField] private SimplePanelUI panelUI;
-    [TextArea(3, 8)]
-    [SerializeField] private string noteContent = "这是一张测试纸条。\n后续会接入正式剧情内容。";
+    [SerializeField] private int noteIndex;
 
     private void Awake()
     {
@@ -16,17 +15,21 @@ public class NoteInteract : MonoBehaviour, IInteractable
 
     public bool CanInteract()
     {
-        return isActiveAndEnabled && panelUI != null && !panelUI.IsOpen;
+        return isActiveAndEnabled
+            && GameManager.Instance != null
+            && GameManager.Instance.CanReadNote(noteIndex);
     }
 
     public void Interact()
     {
-        if (!CanInteract())
+        if (!CanInteract() || GameManager.Instance == null)
         {
             return;
         }
 
-        panelUI.ShowNote(noteContent);
+        panelUI.ShowNote(
+            GameManager.Instance.GetNoteContent(noteIndex),
+            () => GameManager.Instance.OnNoteRead(noteIndex));
     }
 
     public string GetHintText()
