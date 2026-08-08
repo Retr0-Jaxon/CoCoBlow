@@ -389,7 +389,7 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: ba6dee01c0f436c4abb237c71e605ce0,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.2739472
+      value: -2.03
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: ba6dee01c0f436c4abb237c71e605ce0,
         type: 3}
@@ -399,7 +399,7 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: ba6dee01c0f436c4abb237c71e605ce0,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.38273335
+      value: 2.776
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: ba6dee01c0f436c4abb237c71e605ce0,
         type: 3}
@@ -445,6 +445,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: paper
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: ba6dee01c0f436c4abb237c71e605ce0,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -837,7 +842,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 548, y: 466}
+  m_AnchoredPosition: {x: 460, y: 466}
   m_SizeDelta: {x: 260, y: 48}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &543556518
@@ -868,7 +873,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u6930\u5B50\u6570\u91CF\uFF1A"
+  m_text: "\u5DF2\u6536\u96C6\u6930\u5B50\u6570\u91CF"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5a104f92d758eed4f9bd9afe85ca278c, type: 2}
   m_sharedMaterial: {fileID: 3263817828423612825, guid: 5a104f92d758eed4f9bd9afe85ca278c,
@@ -1111,7 +1116,8 @@ MonoBehaviour:
   m_text: "\xD7"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5a104f92d758eed4f9bd9afe85ca278c, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 3263817828423612825, guid: 5a104f92d758eed4f9bd9afe85ca278c,
+    type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1561,14 +1567,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.5882353}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: 5efa4bcac39469641b0de271bd094ad0, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2017,9 +2023,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   simpleHud: {fileID: 1489201293}
+  simplePanelUI: {fileID: 1195709313}
   hairDryer: {fileID: 772331622}
   coconutSpawner: {fileID: 1815447346}
-  upgradeRequiredCoconuts: 3
+  notes:
+  - noteObject: {fileID: 1843407460}
+    content: "\u8FD9\u662F\u4E00\u5F20\u5F02\u5E38\u7EB8\u6761\u3002\n\u5347\u7EA7\u540E\uFF0C\u67D0\u4E9B\u4E8B\u60C5\u5F00\u59CB\u53D8\u5F97\u4E0D\u5BF9\u52B2\u2026\u2026"
+    unlocked: 0
+    readForEnding: 0
+  upgradeRequiredCoconuts: 1
   windForceAfterUpgrade: 35
   windRangeAfterUpgrade: 10
   windAngleAfterUpgrade: 28
@@ -4026,7 +4038,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   panelUI: {fileID: 1195709313}
-  noteContent: "\u8FD9\u662F\u4E00\u5F20\u6D4B\u8BD5\u7EB8\u6761\u3002\n\u540E\u7EED\u4F1A\u63A5\u5165\u6B63\u5F0F\u5267\u60C5\u5185\u5BB9\u3002"
+  noteIndex: 0
 --- !u!65 &1843407465
 BoxCollider:
   m_ObjectHideFlags: 0
