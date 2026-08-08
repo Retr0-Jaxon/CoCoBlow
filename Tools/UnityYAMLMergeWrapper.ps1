@@ -70,21 +70,9 @@ if ([string]::IsNullOrWhiteSpace($ext)) {
     }
 }
 
-$mergeExt = $ext
-$unityYamlExtensions = @(
-    '.asset',
-    '.mat',
-    '.anim',
-    '.controller',
-    '.overrideController',
-    '.playable',
-    '.mask',
-    '.physicMaterial',
-    '.physicsMaterial2D'
-)
-if ($unityYamlExtensions -contains $ext) {
-    $mergeExt = '.unity'
-}
+# UnityYAMLMerge only has built-in handlers for .unity and .prefab. Git may
+# provide a temporary path ending in .tmp, so all non-prefab YAML uses .unity.
+$mergeExt = if ($ext -ieq '.prefab') { '.prefab' } else { '.unity' }
 
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("unityyamlmerge-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tempRoot | Out-Null
@@ -106,7 +94,7 @@ function Copy-WithExtension {
 $baseCopy = Copy-WithExtension -Source $Base -Name 'base'
 $otherCopy = Copy-WithExtension -Source $Remote -Name 'other'
 $localCopy = Copy-WithExtension -Source $Local -Name 'local'
-$resultCopy = Join-Path $tempRoot ('result' + $ext)
+$resultCopy = Join-Path $tempRoot ('result' + $mergeExt)
 
 Push-Location (Split-Path -Parent $unityMerge)
 try {
