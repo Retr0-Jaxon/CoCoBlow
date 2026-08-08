@@ -2,6 +2,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Audio;
+/// <summary>
+/// 必看！！！API调用只有下面三种
+/// </summary>
+//AudioManager.PlayAudio("音频名称", true/false)  //true表示防止重叠播放，false表示允许重叠播放
+//AudioManager.StopAudio("音频名称")  //停止播放音频
+//AudioManager.PlayAudio3D("音频名称", GameObject)  //播放3D音效，GameObject为音效发出位置的物体
+
+
+
 public class AudioManager : MonoBehaviour
 {
     // 单例实例
@@ -20,8 +29,8 @@ public class AudioManager : MonoBehaviour
         public AudioMixerGroup outputGroup;
 
         [Header("音频音量")]
-        [Range(0f, 5f)]
-        public float volume;
+        [Range(0f, 1f)]
+        public float volume=1f;
 
         [Header("音频音调")]
         [Range(0.8f, 2f)]
@@ -105,27 +114,14 @@ public class AudioManager : MonoBehaviour
     /// <summary>
     /// /////////////////////api////////////////
     /// </summary>
+    // 提取公共逻辑：查找音频、处理随机音调
+
+
     //播放音频api
     public static void PlayAudio(string soundName, bool isPreventOverLap)
     {
-        if (Instance == null)
-        {
-            Debug.LogError("AudioManager: 实例未初始化，无法播放音频");
-            return;
-        }
-        if (!Instance.audioSourcesDic.ContainsKey(soundName))
-        {
-            Debug.LogError($"AudioManager: 未找到名为 {soundName} 的音频源");
-            return;
-        }
-        Sound soundData = Instance.audioSourcesDic[soundName];
-        //如果是随机音调，随机pitch（未完工）
-        if (soundData.israndomPitch)
-        {
-            float randomPitch = Random.Range(0.4f, 1.5f);
-            soundData.source.pitch = randomPitch;
-            Debug.Log($"AudioManager: 音频 {soundName} 随机音调为 {randomPitch}");
-        }
+        Sound soundData = ResolveSound(soundName, "播放音频");
+        if (soundData == null) return;
         //播放音频
         if (isPreventOverLap)
         {
@@ -163,31 +159,15 @@ public class AudioManager : MonoBehaviour
         Debug.Log($"AudioManager: 停止音频 {soundName}");
     }
     //3d音效的播放api，我没有选择新建component，而是创建一个临时go跟着跑，所以稍微逻辑复杂，不过我个人认为更好
-    public static void PlayAudio3D(string soundName,GameObject fromGO)
+    public static void PlayAudio3D(string soundName, GameObject fromGO)
     {
-        if (Instance == null)
-        {
-            Debug.LogError("AudioManager: 实例未初始化，无法播放音频");
-            return;
-        }
-        if (!Instance.audioSourcesDic.ContainsKey(soundName))
-        {
-            Debug.LogError($"AudioManager: 未找到名为 {soundName} 的音频源");
-            return;
-        }
         if (fromGO == null)
         {
             Debug.LogError("AudioManager: 传入的 GameObject 为 null，无法播放3D音频");
             return;
         }
-        Sound soundData = Instance.audioSourcesDic[soundName];
-        //如果是随机音调，随机pitch（未完工）
-        if (soundData.israndomPitch)
-        {
-            float randomPitch = Random.Range(0.4f, 1.5f);
-            soundData.source.pitch = randomPitch;
-            Debug.Log($"AudioManager: 音频 {soundName} 随机音调为 {randomPitch}");
-        }
+        Sound soundData = ResolveSound(soundName, "播放3D音频");
+        if (soundData == null) return;
         //播放音频
         soundData.source.spatialBlend = 1f; // 设置为3D音效
         //创建临时go随着东西跑（待靠go池子优化性能）
@@ -222,8 +202,29 @@ public class AudioManager : MonoBehaviour
         }
         Destroy(tempGO);
     }
-
-
+    
+    private static Sound ResolveSound(string soundName, string callerName)
+    {
+        if (Instance == null)
+        {
+            Debug.LogError($"AudioManager: 实例未初始化，无法{callerName}");
+            return null;
+        }
+        if (!Instance.audioSourcesDic.ContainsKey(soundName))
+        {
+            Debug.LogError($"AudioManager: 未找到名为 {soundName} 的音频源");
+            return null;
+        }
+        Sound soundData = Instance.audioSourcesDic[soundName];
+        //如果是随机音调，随机pitch（未完工）
+        if (soundData.israndomPitch)
+        {
+            float randomPitch = Random.Range(0.8f, 1.2f);
+            soundData.source.pitch = randomPitch;
+            Debug.Log($"AudioManager: 音频 {soundName} 随机音调为 {randomPitch}");
+        }
+        return soundData;
+    }
 
 
 
