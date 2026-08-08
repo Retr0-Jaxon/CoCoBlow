@@ -32,5 +32,8 @@ public class CoconutSubmitZone : MonoBehaviour
         coconut.MarkSubmitted();
         gameManager.AddCoconut(coconut.ScoreValue);
         Destroy(coconut.gameObject);
+        //play sfx
+        AudioManager.PlayAudio("coco_watered",false);
     }
 }
+
