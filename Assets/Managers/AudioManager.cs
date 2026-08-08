@@ -50,11 +50,13 @@ public class AudioManager : MonoBehaviour
         // 单例初始化
         PatternSingleton();
         audioSourcesDic = new Dictionary<string, Sound>();
+        // 音频初始化移到 Awake，确保其他脚本 Start 调用时已就绪
+        InitializeAudio();
     }
-    void Start()
+
+    void InitializeAudio()
     {
         Debug.Log($"AudioManager: 开始初始化，sounds 列表共有 {sounds.Count} 个音频");
-        //遍历音频
         foreach (var sound in sounds)
         {
             if (sound.clip == null)
@@ -67,23 +69,17 @@ public class AudioManager : MonoBehaviour
                 Debug.LogWarning($"AudioManager: 第 {sounds.IndexOf(sound)} 个 Sound 的 Name 为空，已跳过");
                 continue;
             }
-            //创建一个go，叫做Sound_加上音频名称，来存放音频
             GameObject soundObject = new GameObject("Sound_" + sound.name);
             soundObject.transform.SetParent(transform);
             AudioSource Source = soundObject.AddComponent<AudioSource>();
-            //给音频源赋值
             Source.clip = sound.clip;
             Source.volume = sound.volume;
-                                            // Source.pitch = sound.pitch;假如有这行就不能随机音调了
             Source.loop = sound.loop;
             Source.outputAudioMixerGroup = sound.outputGroup;
             Source.playOnAwake = sound.playOnAwake;
-            //绑定运行时 AudioSource
             sound.source = Source;
-            //将音频数据加入字典
             audioSourcesDic.Add(sound.name, sound);
             Debug.Log($"AudioManager: 已创建音频源 Sound_{sound.name} | volume={sound.volume} | loop={sound.loop} | playOnAwake={sound.playOnAwake}");
-            //播放开局音频
             if (sound.playOnAwake)
             {
                 Source.Play();
@@ -93,7 +89,24 @@ public class AudioManager : MonoBehaviour
         Debug.Log($"AudioManager: 初始化完成，共创建 {audioSourcesDic.Count} 个音频源");
     }
 
-    public static void PlayAudio(string soundName, bool isWait)
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /// <summary>
+    /// /////////////////////api////////////////
+    /// </summary>
+    //播放音频api
+    public static void PlayAudio(string soundName, bool isPreventOverLap)
     {
         if (Instance == null)
         {
@@ -114,7 +127,7 @@ public class AudioManager : MonoBehaviour
             Debug.Log($"AudioManager: 音频 {soundName} 随机音调为 {randomPitch}");
         }
         //播放音频
-        if (isWait)
+        if (isPreventOverLap)
         {
             if (soundData.source.isPlaying)
             {
@@ -133,6 +146,7 @@ public class AudioManager : MonoBehaviour
             Debug.Log($"AudioManager: 播放音频 {soundName}");
         }
     }
+    //停止音频api
     public static void StopAudio(string soundName)
     {
         if (Instance == null)
@@ -147,6 +161,66 @@ public class AudioManager : MonoBehaviour
         }
         Instance.audioSourcesDic[soundName].source.Stop();
         Debug.Log($"AudioManager: 停止音频 {soundName}");
+    }
+    //3d音效的播放api，我没有选择新建component，而是创建一个临时go跟着跑，所以稍微逻辑复杂，不过我个人认为更好
+    public static void PlayAudio3D(string soundName,GameObject fromGO)
+    {
+        if (Instance == null)
+        {
+            Debug.LogError("AudioManager: 实例未初始化，无法播放音频");
+            return;
+        }
+        if (!Instance.audioSourcesDic.ContainsKey(soundName))
+        {
+            Debug.LogError($"AudioManager: 未找到名为 {soundName} 的音频源");
+            return;
+        }
+        if (fromGO == null)
+        {
+            Debug.LogError("AudioManager: 传入的 GameObject 为 null，无法播放3D音频");
+            return;
+        }
+        Sound soundData = Instance.audioSourcesDic[soundName];
+        //如果是随机音调，随机pitch（未完工）
+        if (soundData.israndomPitch)
+        {
+            float randomPitch = Random.Range(0.4f, 1.5f);
+            soundData.source.pitch = randomPitch;
+            Debug.Log($"AudioManager: 音频 {soundName} 随机音调为 {randomPitch}");
+        }
+        //播放音频
+        soundData.source.spatialBlend = 1f; // 设置为3D音效
+        //创建临时go随着东西跑（待靠go池子优化性能）
+        GameObject tempGO = new GameObject("TempAudio_" + soundName);
+        tempGO.transform.position = fromGO.transform.position;
+        AudioSource tempSource = tempGO.AddComponent<AudioSource>();
+        tempSource.clip = soundData.clip;
+        tempSource.volume = soundData.volume;
+        tempSource.pitch = soundData.source.pitch;
+        tempSource.loop = soundData.loop;
+        tempSource.outputAudioMixerGroup = soundData.outputGroup;
+        tempSource.spatialBlend = 1f;
+        tempSource.Play();
+        Instance.StartCoroutine(FollowAndDestroy(tempGO, fromGO, soundData.clip.length));
+    }
+
+    private static IEnumerator FollowAndDestroy(GameObject tempGO, GameObject target, float clipLength)
+    {
+        float elapsed = 0f;
+        while (elapsed < clipLength)
+        {
+            if (tempGO == null) yield break;
+            if (target == null)
+            {
+                // 原物体没了，销毁 tempGO
+                Destroy(tempGO);
+                yield break;
+            }
+            tempGO.transform.position = target.transform.position;
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        Destroy(tempGO);
     }
 
 
