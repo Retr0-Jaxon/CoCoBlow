@@ -24,6 +24,7 @@ public class SimplePanelUI : MonoBehaviour
 
     private GameObject activePanel;
     private Action onNoteClosed;
+    private Func<bool> upgradeConfirmCallback;
 
     public bool IsOpen => activePanel != null;
 
@@ -32,6 +33,11 @@ public class SimplePanelUI : MonoBehaviour
         if (noteCloseButton != null)
         {
             noteCloseButton.onClick.AddListener(CloseNotePanel);
+        }
+
+        if (upgradeButton != null)
+        {
+            upgradeButton.onClick.AddListener(HandleUpgradeButtonClick);
         }
 
         if (upgradeCloseButton != null)
@@ -77,14 +83,20 @@ public class SimplePanelUI : MonoBehaviour
         }
     }
 
-    public void ShowUpgradePanel()
+    public void ShowUpgradePanel(Func<bool> onConfirm = null)
     {
+        upgradeConfirmCallback = onConfirm;
         ShowPanel(upgradePanel);
     }
 
     public void HideUpgradePanel()
     {
         CloseUpgradePanel();
+    }
+
+    private void HandleUpgradeButtonClick()
+    {
+        upgradeConfirmCallback?.Invoke();
     }
 
     private void CloseUpgradePanel()
@@ -94,6 +106,7 @@ public class SimplePanelUI : MonoBehaviour
             return;
         }
 
+        upgradeConfirmCallback = null;
         HideActivePanel();
     }
 

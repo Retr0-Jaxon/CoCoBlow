@@ -10,8 +10,8 @@ public class SimpleHUD : MonoBehaviour
     [SerializeField] private TextMeshProUGUI darkCountdownText;
 
     [Header("Display")]
-    [SerializeField] private string coconutCountFormat = "Coconut : {0}";
-    [SerializeField] private string upgradeHintDefaultText = "可以升级了";
+    [SerializeField] private string coconutCountFormat = "已收集椰子数量 : {0}";
+    [SerializeField] private string upgradeHintDefaultText = "可以升级了！";
     [SerializeField] private string darkCountdownFormat = "黑暗倒计时: {0:0}";
 
     private void Awake()
