@@ -137,7 +137,7 @@ public class FirstPersonController : MonoBehaviour
             return;
         }
 
-        if (keyboard.eKey.wasPressedThisFrame && targetedHairDryer != null && !targetedHairDryer.IsHeld)
+        if (keyboard.eKey.wasPressedThisFrame && targetedHairDryer != null && targetedHairDryer.CanBePickedUp && !targetedHairDryer.IsHeld)
         {
             targetedHairDryer.PickUp(cameraRoot);
         }
@@ -178,7 +178,7 @@ public class FirstPersonController : MonoBehaviour
         }
 
         HairDryer dryer = hit.collider.GetComponentInParent<HairDryer>();
-        if (dryer != null && !dryer.IsHeld)
+        if (dryer != null && dryer.CanBePickedUp && !dryer.IsHeld)
         {
             hairDryer = dryer;
         }
@@ -191,7 +191,7 @@ public class FirstPersonController : MonoBehaviour
             return true;
         }
 
-        return targetedHairDryer != null && !targetedHairDryer.IsHeld;
+        return targetedHairDryer != null && targetedHairDryer.CanBePickedUp && !targetedHairDryer.IsHeld;
     }
 
     private bool IsPanelOpen()
