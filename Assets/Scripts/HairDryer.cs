@@ -66,6 +66,14 @@ public class HairDryer : MonoBehaviour
         direction = nozzle != null ? nozzle.up : transform.forward;
     }
 
+    public void ApplyUpgrade(float force, float range, float angle)
+    {
+        windForce = force;
+        windRange = range;
+        windAngle = angle;
+        UpdateRangeVisual();
+    }
+
     private void Update()
     {
         bool mousePressed = IsMouseBlowPressed();

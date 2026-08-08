@@ -24,7 +24,7 @@ public class ChairInteract : MonoBehaviour, IInteractable
             return;
         }
 
-        panelUI.ShowUpgradePanel();
+        panelUI.ShowUpgradePanel(() => GameManager.Instance != null && GameManager.Instance.TryUpgrade());
     }
 
     public string GetHintText()
