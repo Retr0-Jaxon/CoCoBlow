@@ -3,24 +3,41 @@ using UnityEngine.InputSystem;
 
 public class HairDryer : MonoBehaviour
 {
+    public enum WindActivationMode
+    {
+        HoldLeftMouse = 0,
+        ClickLeftMouse = 1,
+        Automatic = 2
+    }
+
     [Header("Wind")]
     [SerializeField] private float windForce = 28f;
     [SerializeField] private float windRange = 8f;
     [SerializeField, Range(1f, 60f)] private float windAngle = 28f;
+    [SerializeField] private WindActivationMode activationMode = WindActivationMode.HoldLeftMouse;
     [SerializeField] private bool blowOnLeftMouse = true;
+    [SerializeField, Min(0.05f)] private float clickBurstDuration = 0.18f;
 
     [Header("Visuals")]
     [SerializeField] private Transform nozzle;
     [SerializeField] private HairDryerRangeVisual rangeVisual;
     [SerializeField] private bool isHeld;
+    [SerializeField] private bool canBePickedUp = true;
+
+    [Header("Pickup")]
+    [SerializeField] private Vector3 pickupLocalPosition = new Vector3(0.42f, -0.28f, 0.72f);
+    [SerializeField] private Vector3 pickupLocalEulerAngles = Vector3.zero;
 
     public bool IsHeld => isHeld;
+    public bool CanBePickedUp => canBePickedUp;
+    public float WindForce => windForce;
     public float WindRange => windRange;
     public float WindAngle => windAngle;
     public Transform Nozzle => nozzle;
-    public bool ShouldShowRangeVisual => !isHeld || isBlowingPhysics;
+    public bool ShouldShowRangeVisual => activationMode == WindActivationMode.Automatic || !isHeld || isBlowingPhysics;
 
     private bool isBlowingPhysics;
+    private float clickBurstTimer;
     private Collider pickupCollider;
     private Rigidbody pickupRigidbody;
 
@@ -28,12 +45,18 @@ public class HairDryer : MonoBehaviour
     {
         pickupRigidbody = GetComponent<Rigidbody>();
         pickupCollider = GetComponent<Collider>();
+        ApplyNameBasedPreset();
         ApplyHeldState();
     }
 
     private void Start()
     {
         UpdateRangeVisual();
+    }
+
+    private void OnValidate()
+    {
+        ApplyNameBasedPreset();
     }
 
     public void PickUp(Transform handParent)
@@ -45,8 +68,8 @@ public class HairDryer : MonoBehaviour
 
         isHeld = true;
         transform.SetParent(handParent, false);
-        transform.localPosition = new Vector3(0.42f, -0.28f, 0.72f);
-        transform.localRotation = Quaternion.identity;
+        transform.localPosition = pickupLocalPosition;
+        transform.localRotation = Quaternion.Euler(pickupLocalEulerAngles);
         pickupRigidbody.isKinematic = true;
         ApplyHeldState();
     }
@@ -76,8 +99,7 @@ public class HairDryer : MonoBehaviour
 
     private void Update()
     {
-        bool mousePressed = IsMouseBlowPressed();
-        isBlowingPhysics = isHeld && mousePressed;
+        UpdateBlowingState();
         UpdateRangeVisual();
     }
 
@@ -144,9 +166,76 @@ public class HairDryer : MonoBehaviour
         UpdateRangeVisual();
     }
 
+    private void ApplyNameBasedPreset()
+    {
+        if (gameObject.name.Contains("HandFan"))
+        {
+            activationMode = WindActivationMode.ClickLeftMouse;
+            canBePickedUp = true;
+            return;
+        }
+
+        /*if (gameObject.name.Contains("ElectricFan"))
+        {
+            activationMode = WindActivationMode.Automatic;
+            canBePickedUp = false;
+            isHeld = false;
+        }*/
+    }
+
     private bool IsMouseBlowPressed()
     {
-        return !blowOnLeftMouse || (Mouse.current != null && Mouse.current.leftButton.isPressed);
+        if (activationMode == WindActivationMode.Automatic)
+        {
+            return true;
+        }
+
+        if (Mouse.current == null)
+        {
+            return false;
+        }
+
+        if (!blowOnLeftMouse)
+        {
+            return activationMode != WindActivationMode.ClickLeftMouse || Mouse.current.leftButton.wasPressedThisFrame;
+        }
+
+        if (activationMode == WindActivationMode.ClickLeftMouse)
+        {
+            return Mouse.current.leftButton.wasPressedThisFrame;
+        }
+
+        return Mouse.current.leftButton.isPressed;
+    }
+
+    private void UpdateBlowingState()
+    {
+        if (activationMode == WindActivationMode.Automatic)
+        {
+            isBlowingPhysics = true;
+            return;
+        }
+
+        if (!isHeld)
+        {
+            isBlowingPhysics = false;
+            clickBurstTimer = 0f;
+            return;
+        }
+
+        if (activationMode == WindActivationMode.ClickLeftMouse)
+        {
+            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+            {
+                clickBurstTimer = clickBurstDuration;
+            }
+
+            clickBurstTimer = Mathf.Max(0f, clickBurstTimer - Time.deltaTime);
+            isBlowingPhysics = clickBurstTimer > 0f;
+            return;
+        }
+
+        isBlowingPhysics = IsMouseBlowPressed();
     }
 
     private void UpdateRangeVisual()
