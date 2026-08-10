@@ -6,15 +6,29 @@ public class ChairInteract : MonoBehaviour, IInteractable
 
     private void Awake()
     {
-        if (panelUI == null) panelUI = FindObjectOfType<SimplePanelUI>();
+        if (panelUI == null)
+        {
+            panelUI = FindObjectOfType<SimplePanelUI>();
+        }
     }
 
-    public bool CanInteract() => isActiveAndEnabled && panelUI != null && !panelUI.IsOpen;
+    public bool CanInteract()
+    {
+        return isActiveAndEnabled && panelUI != null && !panelUI.IsOpen;
+    }
 
     public void Interact()
     {
-        if (CanInteract()) panelUI.ShowUpgradePanel();
+        if (!CanInteract())
+        {
+            return;
+        }
+
+        panelUI.ShowUpgradePanel(() => GameManager.Instance != null && GameManager.Instance.TryUpgrade());
     }
 
-    public string GetHintText() => string.Empty;
+    public string GetHintText()
+    {
+        return string.Empty;
+    }
 }

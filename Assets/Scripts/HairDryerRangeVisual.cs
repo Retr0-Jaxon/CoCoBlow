@@ -1,8 +1,6 @@
-using System.Diagnostics.CodeAnalysis;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-[ExecuteAlways]
 [DisallowMultipleComponent]
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshRenderer))]
@@ -27,7 +25,7 @@ public class HairDryerRangeVisual : MonoBehaviour
     private MeshRenderer meshRenderer;
     private Material runtimeMaterial;
     private MaterialPropertyBlock materialPropertyBlock;
-    [MaybeNull] private Mesh coneMesh;
+    private Mesh coneMesh;
     private bool ownsRuntimeMaterial;
 
     private float currentAlpha;
@@ -38,75 +36,46 @@ public class HairDryerRangeVisual : MonoBehaviour
     private float cachedRange = -1f;
     private float cachedAngle = -1f;
     private int cachedSegments = -1;
-    private bool isInitialized;
-
-#if UNITY_EDITOR
-    private bool editorRefreshQueued;
-#endif
 
     private void Awake()
     {
-        InitializeIfNeeded();
-    }
+        meshFilter = GetComponent<MeshFilter>();
+        meshRenderer = GetComponent<MeshRenderer>();
 
-    private void OnEnable()
-    {
-        InitializeIfNeeded();
-        ForceEditorVisibleState();
-    }
-
-    private void OnValidate()
-    {
-#if UNITY_EDITOR
-        if (!Application.isPlaying)
+        if (hairDryer == null)
         {
-            QueueEditorRefresh();
-            return;
+            hairDryer = GetComponentInParent<HairDryer>();
         }
-#endif
 
-        InitializeIfNeeded();
-        ForceEditorVisibleState();
+        ConfigureRenderer();
+        EnsureMaterial();
+        materialPropertyBlock = new MaterialPropertyBlock();
+        coneMesh = new Mesh { name = "HairDryerRangeCone" };
+        meshFilter.sharedMesh = coneMesh;
     }
 
     private void OnDestroy()
     {
         if (coneMesh != null)
         {
-            if (Application.isPlaying)
-            {
-                Destroy(coneMesh);
-            }
-            else
-            {
-                DestroyImmediate(coneMesh);
-            }
+            Destroy(coneMesh);
         }
 
         if (ownsRuntimeMaterial && runtimeMaterial != null)
         {
-            if (Application.isPlaying)
-            {
-                Destroy(runtimeMaterial);
-            }
-            else
-            {
-                DestroyImmediate(runtimeMaterial);
-            }
+            Destroy(runtimeMaterial);
         }
     }
 
     private void LateUpdate()
     {
-        InitializeIfNeeded();
-
         if (hairDryer == null)
         {
             SetRendererEnabled(false);
             return;
         }
 
-        bool shouldShow = !Application.isPlaying || alwaysShowRange || hairDryer.ShouldShowRangeVisual;
+        bool shouldShow = alwaysShowRange || hairDryer.ShouldShowRangeVisual;
         UpdateVisibilityState(shouldShow);
         UpdateFade();
 
@@ -132,11 +101,6 @@ public class HairDryerRangeVisual : MonoBehaviour
 
     public void StopFade()
     {
-        if (!Application.isPlaying)
-        {
-            return;
-        }
-
         isVisible = false;
         isFadingOut = true;
     }
@@ -158,14 +122,6 @@ public class HairDryerRangeVisual : MonoBehaviour
 
     private void UpdateFade()
     {
-        if (!Application.isPlaying)
-        {
-            currentAlpha = fillColor.a;
-            isVisible = true;
-            isFadingOut = false;
-            return;
-        }
-
         if (!isFadingOut)
         {
             currentAlpha = fillColor.a;
@@ -237,84 +193,6 @@ public class HairDryerRangeVisual : MonoBehaviour
         meshRenderer.lightProbeUsage = LightProbeUsage.Off;
         meshRenderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
     }
-
-    private void InitializeIfNeeded()
-    {
-        if (isInitialized)
-        {
-            return;
-        }
-
-        meshFilter = GetComponent<MeshFilter>();
-        meshRenderer = GetComponent<MeshRenderer>();
-
-        // if (hairDryer == null)
-        // {
-        //     hairDryer = GetComponentInParent<HairDryer>();
-        // }
-
-        ConfigureRenderer();
-        EnsureMaterial();
-        materialPropertyBlock = new MaterialPropertyBlock();
-
-        if (coneMesh == null)
-        {
-            coneMesh = new Mesh { name = "HairDryerRangeCone" };
-        }
-
-        meshFilter.sharedMesh = coneMesh;
-        currentAlpha = fillColor.a;
-        isVisible = true;
-        isFadingOut = false;
-        isInitialized = true;
-    }
-
-    private void ForceEditorVisibleState()
-    {
-        if (Application.isPlaying)
-        {
-            return;
-        }
-
-        currentAlpha = fillColor.a;
-        isVisible = true;
-        isFadingOut = false;
-        SetRendererEnabled(true);
-    }
-
-#if UNITY_EDITOR
-    private void QueueEditorRefresh()
-    {
-        if (editorRefreshQueued)
-        {
-            return;
-        }
-
-        editorRefreshQueued = true;
-        UnityEditor.EditorApplication.delayCall += () =>
-        {
-            if (this == null)
-            {
-                return;
-            }
-
-            editorRefreshQueued = false;
-            InitializeIfNeeded();
-            ForceEditorVisibleState();
-
-            if (hairDryer == null)
-            {
-                return;
-            }
-
-            cachedRange = -1f;
-            cachedAngle = -1f;
-            cachedSegments = -1;
-            RebuildMeshIfNeeded(hairDryer.WindRange, hairDryer.WindAngle);
-            ApplyAlpha(currentAlpha);
-        };
-    }
-#endif
 
     private void EnsureMaterial()
     {
