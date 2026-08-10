@@ -86,6 +86,7 @@ public class HairDryerRangeVisual : MonoBehaviour
         }
 
         RebuildMeshIfNeeded(hairDryer.WindRange, hairDryer.WindAngle);
+        AlignToWind();
         SetRendererEnabled(true);
         ApplyAlpha(currentAlpha);
     }
@@ -184,6 +185,41 @@ public class HairDryerRangeVisual : MonoBehaviour
         mesh.triangles = triangles;
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
+    }
+
+    private void AlignToWind()
+    {
+        hairDryer.GetWindOriginAndDirection(out Vector3 origin, out Vector3 direction);
+        if (direction.sqrMagnitude <= 0.0001f)
+        {
+            return;
+        }
+
+        transform.SetPositionAndRotation(
+            origin,
+            Quaternion.FromToRotation(Vector3.up, direction.normalized));
+        CompensateParentScale();
+    }
+
+    private void CompensateParentScale()
+    {
+        Transform parent = transform.parent;
+        if (parent == null)
+        {
+            transform.localScale = Vector3.one;
+            return;
+        }
+
+        Vector3 parentScale = parent.lossyScale;
+        transform.localScale = new Vector3(
+            SafeInverseScale(parentScale.x),
+            SafeInverseScale(parentScale.y),
+            SafeInverseScale(parentScale.z));
+    }
+
+    private static float SafeInverseScale(float value)
+    {
+        return Mathf.Abs(value) <= 0.0001f ? 1f : 1f / value;
     }
 
     private void ConfigureRenderer()

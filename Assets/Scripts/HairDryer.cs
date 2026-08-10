@@ -9,8 +9,13 @@ public class HairDryer : MonoBehaviour
     [SerializeField, Range(1f, 60f)] private float windAngle = 28f;
     [SerializeField] private bool blowOnLeftMouse = true;
 
+    [Header("Pickup")]
+    [SerializeField] private Vector3 pickupLocalPosition = new Vector3(0.42f, -0.28f, 0.72f);
+    [SerializeField] private Vector3 pickupLocalEulerAngles = Vector3.zero;
+
     [Header("Visuals")]
     [SerializeField] private Transform nozzle;
+    [SerializeField] private Vector3 windLocalDirection = Vector3.up;
     [SerializeField] private HairDryerRangeVisual rangeVisual;
     [SerializeField] private bool isHeld;
 
@@ -45,9 +50,12 @@ public class HairDryer : MonoBehaviour
 
         isHeld = true;
         transform.SetParent(handParent, false);
-        transform.localPosition = new Vector3(0.42f, -0.28f, 0.72f);
-        transform.localRotation = Quaternion.identity;
-        pickupRigidbody.isKinematic = true;
+        transform.localPosition = pickupLocalPosition;
+        transform.localRotation = Quaternion.Euler(pickupLocalEulerAngles);
+        if (pickupRigidbody != null)
+        {
+            pickupRigidbody.isKinematic = true;
+        }
         ApplyHeldState();
     }
 
@@ -56,14 +64,18 @@ public class HairDryer : MonoBehaviour
         isHeld = false;
         transform.SetParent(null, true);
         transform.SetPositionAndRotation(worldPosition, worldRotation);
-        pickupRigidbody.isKinematic = false;
+        if (pickupRigidbody != null)
+        {
+            pickupRigidbody.isKinematic = false;
+        }
         ApplyHeldState();
     }
 
     public void GetWindOriginAndDirection(out Vector3 origin, out Vector3 direction)
     {
-        origin = nozzle != null ? nozzle.position : transform.position;
-        direction = nozzle != null ? nozzle.up : transform.forward;
+        Transform emitter = nozzle != null ? nozzle : transform;
+        origin = emitter.position;
+        direction = emitter.TransformDirection(GetNormalizedWindLocalDirection());
     }
 
     public void ApplyUpgrade(float force, float range, float angle)
@@ -142,6 +154,16 @@ public class HairDryer : MonoBehaviour
     private void ApplyHeldState()
     {
         UpdateRangeVisual();
+    }
+
+    private Vector3 GetNormalizedWindLocalDirection()
+    {
+        if (windLocalDirection.sqrMagnitude <= 0.0001f)
+        {
+            return Vector3.up;
+        }
+
+        return windLocalDirection.normalized;
     }
 
     private bool IsMouseBlowPressed()

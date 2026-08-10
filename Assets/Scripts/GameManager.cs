@@ -10,6 +10,25 @@ public class NoteEntry
     [HideInInspector] public bool readForEnding;
 }
 
+[Serializable]
+public class UpgradeStage
+{
+    public int cost = 1;
+
+    [Header("Hair Dryer")]
+    public float windForce = 28f;
+    public float windRange = 8f;
+    [Range(1f, 60f)] public float windAngle = 28f;
+    public int noteIndex = -1;
+
+    [Header("Hair Dryer Model")]
+    public HairDryer hairDryerPrefab;
+
+    [Header("Coconut Tree")]
+    public float spawnInterval = 8f;
+    public int maxActiveCoconuts = 5;
+}
+
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
@@ -23,20 +42,42 @@ public class GameManager : MonoBehaviour
     [Header("Notes")]
     [SerializeField] private NoteEntry[] notes;
 
-    [Header("Upgrade")]
-    [SerializeField] private int upgradeRequiredCoconuts = 3;
-    [SerializeField] private float windForceAfterUpgrade = 35f;
-    [SerializeField] private float windRangeAfterUpgrade = 10f;
-    [SerializeField, Range(1f, 60f)] private float windAngleAfterUpgrade = 28f;
-    [SerializeField] private float spawnIntervalAfterUpgrade = 5f;
+    [Header("Hair Dryer Upgrades")]
+    [SerializeField] private UpgradeStage[] hairDryerUpgradeStages =
+    {
+        new UpgradeStage { cost = 5, windForce = 120f, windRange = 5.5f, windAngle = 28f, noteIndex = 0 },
+        new UpgradeStage { cost = 12, windForce = 150f, windRange = 7f, windAngle = 34f, noteIndex = 1 },
+        new UpgradeStage { cost = 20, windForce = 180f, windRange = 8f, windAngle = 37f, noteIndex = 2 }
+    };
 
-    private bool hasUpgraded;
+    [Header("Coconut Tree Upgrades")]
+    [SerializeField] private UpgradeStage[] coconutTreeUpgradeStages =
+    {
+        new UpgradeStage { cost = 8, spawnInterval = 1.5f, maxActiveCoconuts = 5 },
+        new UpgradeStage { cost = 15, spawnInterval = 1.5f, maxActiveCoconuts = 8 },
+        new UpgradeStage { cost = 25, spawnInterval = 1f, maxActiveCoconuts = 10 }
+    };
+
+    private int hairDryerUpgradeLevel;
+    private int coconutTreeUpgradeLevel;
 
     public int CoconutCount { get; private set; }
 
-    public bool CanUpgrade => !hasUpgraded && CoconutCount >= upgradeRequiredCoconuts;
+    public int HairDryerUpgradeLevel => hairDryerUpgradeLevel;
 
-    public bool HasUpgraded => hasUpgraded;
+    public int CoconutTreeUpgradeLevel => coconutTreeUpgradeLevel;
+
+    public int MaxHairDryerUpgradeLevel => hairDryerUpgradeStages != null ? hairDryerUpgradeStages.Length : 0;
+
+    public int MaxCoconutTreeUpgradeLevel => coconutTreeUpgradeStages != null ? coconutTreeUpgradeStages.Length : 0;
+
+    public bool CanUpgradeHairDryer => CanUpgradeStage(hairDryerUpgradeStages, hairDryerUpgradeLevel);
+
+    public bool CanUpgradeCoconutTree => CanUpgradeStage(coconutTreeUpgradeStages, coconutTreeUpgradeLevel);
+
+    public bool CanUpgrade => CanUpgradeHairDryer || CanUpgradeCoconutTree;
+
+    public bool HasUpgraded => hairDryerUpgradeLevel > 0;
 
     private void Awake()
     {
@@ -91,19 +132,47 @@ public class GameManager : MonoBehaviour
 
     public bool TryUpgrade()
     {
-        if (hasUpgraded || CoconutCount < upgradeRequiredCoconuts)
+        return TryUpgradeHairDryer();
+    }
+
+    public bool TryUpgradeHairDryer()
+    {
+        if (!TrySpendForUpgrade(hairDryerUpgradeStages, hairDryerUpgradeLevel, out UpgradeStage stage))
         {
             return false;
         }
 
-        CoconutCount -= upgradeRequiredCoconuts;
-        hasUpgraded = true;
-        ApplyUpgradeEffects();
-        UnlockNotesAfterUpgrade();
-        UpdateUpgradeHint();
-        RefreshHud();
-        Debug.Log($"升级成功！消耗 {upgradeRequiredCoconuts} 个椰子，剩余：{CoconutCount}", this);
+        hairDryerUpgradeLevel++;
+        ApplyHairDryerUpgrade(stage);
+        UnlockNote(stage.noteIndex);
+        OnHairDryerUpgradeEvent(hairDryerUpgradeLevel);
+        AfterUpgradeChanged();
+        Debug.Log($"吹风机升级成功！等级：{hairDryerUpgradeLevel}，消耗 {stage.cost} 个椰子，剩余：{CoconutCount}", this);
         return true;
+    }
+
+    public bool TryUpgradeCoconutTree()
+    {
+        if (!TrySpendForUpgrade(coconutTreeUpgradeStages, coconutTreeUpgradeLevel, out UpgradeStage stage))
+        {
+            return false;
+        }
+
+        coconutTreeUpgradeLevel++;
+        ApplyCoconutTreeUpgrade(stage);
+        AfterUpgradeChanged();
+        Debug.Log($"椰子树升级成功！等级：{coconutTreeUpgradeLevel}，消耗 {stage.cost} 个椰子，剩余：{CoconutCount}", this);
+        return true;
+    }
+
+    public int GetNextHairDryerUpgradeCost()
+    {
+        return GetNextUpgradeCost(hairDryerUpgradeStages, hairDryerUpgradeLevel);
+    }
+
+    public int GetNextCoconutTreeUpgradeCost()
+    {
+        return GetNextUpgradeCost(coconutTreeUpgradeStages, coconutTreeUpgradeLevel);
     }
 
     public bool CanReadNote(int index)
@@ -140,33 +209,123 @@ public class GameManager : MonoBehaviour
 
         notes[index].readForEnding = true;
 
-        if (simplePanelUI != null)
+        if (index == GetEndingNoteIndex() && simplePanelUI != null)
         {
             simplePanelUI.ShowEndingPanel();
         }
     }
 
-    private void ApplyUpgradeEffects()
+    private bool CanUpgradeStage(UpgradeStage[] stages, int level)
     {
-        if (hairDryer != null)
-        {
-            hairDryer.ApplyUpgrade(windForceAfterUpgrade, windRangeAfterUpgrade, windAngleAfterUpgrade);
-        }
-
-        if (coconutSpawner != null)
-        {
-            coconutSpawner.SetSpawnInterval(spawnIntervalAfterUpgrade);
-        }
+        return TryGetUpgradeStage(stages, level, out UpgradeStage stage) && CoconutCount >= stage.cost;
     }
 
-    private void UnlockNotesAfterUpgrade()
+    private bool TrySpendForUpgrade(UpgradeStage[] stages, int level, out UpgradeStage stage)
     {
-        if (notes == null || notes.Length == 0)
+        if (!TryGetUpgradeStage(stages, level, out stage) || CoconutCount < stage.cost)
+        {
+            return false;
+        }
+
+        CoconutCount -= stage.cost;
+        return true;
+    }
+
+    private bool TryGetUpgradeStage(UpgradeStage[] stages, int level, out UpgradeStage stage)
+    {
+        stage = null;
+        if (stages == null || level < 0 || level >= stages.Length)
+        {
+            return false;
+        }
+
+        stage = stages[level];
+        return stage != null && stage.cost > 0;
+    }
+
+    private int GetNextUpgradeCost(UpgradeStage[] stages, int level)
+    {
+        return TryGetUpgradeStage(stages, level, out UpgradeStage stage) ? stage.cost : 0;
+    }
+
+    private void ApplyHairDryerUpgrade(UpgradeStage stage)
+    {
+        if (stage == null)
         {
             return;
         }
 
-        UnlockNote(0);
+        if (stage.hairDryerPrefab != null)
+        {
+            SwapHairDryer(stage.hairDryerPrefab, stage);
+            return;
+        }
+
+        if (hairDryer != null)
+        {
+            hairDryer.ApplyUpgrade(stage.windForce, stage.windRange, stage.windAngle);
+        }
+    }
+
+    private void SwapHairDryer(HairDryer prefab, UpgradeStage stage)
+    {
+        if (prefab == null || stage == null)
+        {
+            return;
+        }
+
+        HairDryer oldDryer = hairDryer;
+        if (oldDryer == null)
+        {
+            oldDryer = FindObjectOfType<HairDryer>();
+        }
+
+        bool wasHeld = oldDryer != null && oldDryer.IsHeld;
+        Transform handParent = wasHeld ? oldDryer.transform.parent : null;
+        Vector3 worldPosition = oldDryer != null ? oldDryer.transform.position : Vector3.zero;
+        Quaternion worldRotation = oldDryer != null ? oldDryer.transform.rotation : Quaternion.identity;
+
+        HairDryer newDryer = Instantiate(prefab);
+        newDryer.name = prefab.name;
+        newDryer.ApplyUpgrade(stage.windForce, stage.windRange, stage.windAngle);
+
+        if (wasHeld && handParent != null)
+        {
+            newDryer.PickUp(handParent);
+        }
+        else
+        {
+            newDryer.transform.SetPositionAndRotation(worldPosition, worldRotation);
+        }
+
+        hairDryer = newDryer;
+
+        if (oldDryer != null && oldDryer != newDryer)
+        {
+            Destroy(oldDryer.gameObject);
+        }
+    }
+
+    private void ApplyCoconutTreeUpgrade(UpgradeStage stage)
+    {
+        if (coconutSpawner == null || stage == null)
+        {
+            return;
+        }
+
+        coconutSpawner.SetSpawnInterval(stage.spawnInterval);
+        coconutSpawner.SetMaxActiveCoconuts(stage.maxActiveCoconuts);
+    }
+
+    private void OnHairDryerUpgradeEvent(int level)
+    {
+        Debug.Log($"吹风机升级事件触发：等级 {level}", this);
+    }
+
+    private void AfterUpgradeChanged()
+    {
+        UpdateUpgradeHint();
+        RefreshHud();
     }
 
     private void UnlockNote(int index)
@@ -211,6 +370,29 @@ public class GameManager : MonoBehaviour
     private bool IsValidNoteIndex(int index)
     {
         return notes != null && index >= 0 && index < notes.Length && notes[index] != null;
+    }
+
+    private int GetEndingNoteIndex()
+    {
+        int endingNoteIndex = -1;
+
+        if (hairDryerUpgradeStages != null)
+        {
+            foreach (UpgradeStage stage in hairDryerUpgradeStages)
+            {
+                if (stage != null && IsValidNoteIndex(stage.noteIndex))
+                {
+                    endingNoteIndex = stage.noteIndex;
+                }
+            }
+        }
+
+        if (endingNoteIndex >= 0)
+        {
+            return endingNoteIndex;
+        }
+
+        return notes != null ? notes.Length - 1 : -1;
     }
 
     private void UpdateUpgradeHint()

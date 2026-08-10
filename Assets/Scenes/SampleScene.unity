@@ -2445,6 +2445,7 @@ MonoBehaviour:
   blowOnLeftMouse: 1
   clickBurstDuration: 0.18
   nozzle: {fileID: 1988897286}
+  windLocalDirection: {x: 0, y: 1, z: 0}
   rangeVisual: {fileID: 1739244111}
   isHeld: 0
   canBePickedUp: 1

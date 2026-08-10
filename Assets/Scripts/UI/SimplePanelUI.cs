@@ -11,33 +11,54 @@ public class SimplePanelUI : MonoBehaviour
     [SerializeField] private GameObject notePanel;
     [SerializeField] private GameObject endingPanel;
 
+    [Header("References")]
+    [SerializeField] private GameManager gameManager;
+
     [Header("Note Panel")]
     [SerializeField] private TMP_Text noteText;
     [SerializeField] private Button noteCloseButton;
 
     [Header("Upgrade Panel")]
     [SerializeField] private Button upgradeButton;
+    [SerializeField] private Button hairDryerUpgradeButton;
+    [SerializeField] private Button coconutTreeUpgradeButton;
     [SerializeField] private Button upgradeCloseButton;
+    [SerializeField] private string hairDryerUpgradeText = "升级吹风机";
+    [SerializeField] private string coconutTreeUpgradeText = "升级椰子树";
 
     [Header("Ending Panel")]
     [SerializeField] private Button endingCloseButton;
 
     private GameObject activePanel;
     private Action onNoteClosed;
-    private Func<bool> upgradeConfirmCallback;
 
     public bool IsOpen => activePanel != null;
 
     private void Awake()
     {
+        if (gameManager == null)
+        {
+            gameManager = GameManager.Instance != null
+                ? GameManager.Instance
+                : FindObjectOfType<GameManager>();
+        }
+
+        EnsureUpgradeButtons();
+
         if (noteCloseButton != null)
         {
             noteCloseButton.onClick.AddListener(CloseNotePanel);
         }
 
-        if (upgradeButton != null)
+        Button resolvedHairDryerButton = GetHairDryerUpgradeButton();
+        if (resolvedHairDryerButton != null)
         {
-            upgradeButton.onClick.AddListener(HandleUpgradeButtonClick);
+            resolvedHairDryerButton.onClick.AddListener(HandleHairDryerUpgradeButtonClick);
+        }
+
+        if (coconutTreeUpgradeButton != null)
+        {
+            coconutTreeUpgradeButton.onClick.AddListener(HandleCoconutTreeUpgradeButtonClick);
         }
 
         if (upgradeCloseButton != null)
@@ -83,9 +104,9 @@ public class SimplePanelUI : MonoBehaviour
         }
     }
 
-    public void ShowUpgradePanel(Func<bool> onConfirm = null)
+    public void ShowUpgradePanel()
     {
-        upgradeConfirmCallback = onConfirm;
+        RefreshUpgradeButtons();
         ShowPanel(upgradePanel);
     }
 
@@ -94,9 +115,20 @@ public class SimplePanelUI : MonoBehaviour
         CloseUpgradePanel();
     }
 
-    private void HandleUpgradeButtonClick()
+    private void HandleHairDryerUpgradeButtonClick()
     {
-        upgradeConfirmCallback?.Invoke();
+        if (gameManager != null && gameManager.TryUpgradeHairDryer())
+        {
+            RefreshUpgradeButtons();
+        }
+    }
+
+    private void HandleCoconutTreeUpgradeButtonClick()
+    {
+        if (gameManager != null && gameManager.TryUpgradeCoconutTree())
+        {
+            RefreshUpgradeButtons();
+        }
     }
 
     private void CloseUpgradePanel()
@@ -106,8 +138,85 @@ public class SimplePanelUI : MonoBehaviour
             return;
         }
 
-        upgradeConfirmCallback = null;
         HideActivePanel();
+    }
+
+    private void RefreshUpgradeButtons()
+    {
+        if (gameManager == null)
+        {
+            return;
+        }
+
+        Button resolvedHairDryerButton = GetHairDryerUpgradeButton();
+        if (resolvedHairDryerButton != null)
+        {
+            resolvedHairDryerButton.interactable = gameManager.CanUpgradeHairDryer;
+            SetUpgradeButtonText(
+                resolvedHairDryerButton,
+                hairDryerUpgradeText,
+                gameManager.HairDryerUpgradeLevel,
+                gameManager.MaxHairDryerUpgradeLevel,
+                gameManager.GetNextHairDryerUpgradeCost());
+        }
+
+        if (coconutTreeUpgradeButton != null)
+        {
+            coconutTreeUpgradeButton.interactable = gameManager.CanUpgradeCoconutTree;
+            SetUpgradeButtonText(
+                coconutTreeUpgradeButton,
+                coconutTreeUpgradeText,
+                gameManager.CoconutTreeUpgradeLevel,
+                gameManager.MaxCoconutTreeUpgradeLevel,
+                gameManager.GetNextCoconutTreeUpgradeCost());
+        }
+    }
+
+    private Button GetHairDryerUpgradeButton()
+    {
+        return hairDryerUpgradeButton != null ? hairDryerUpgradeButton : upgradeButton;
+    }
+
+    private void EnsureUpgradeButtons()
+    {
+        Button resolvedHairDryerButton = GetHairDryerUpgradeButton();
+        if (resolvedHairDryerButton == null || coconutTreeUpgradeButton != null)
+        {
+            return;
+        }
+
+        coconutTreeUpgradeButton = Instantiate(resolvedHairDryerButton, resolvedHairDryerButton.transform.parent);
+        coconutTreeUpgradeButton.name = "CoconutTreeUpgradeButton";
+        coconutTreeUpgradeButton.onClick.RemoveAllListeners();
+
+        RectTransform rectTransform = coconutTreeUpgradeButton.GetComponent<RectTransform>();
+        if (rectTransform != null)
+        {
+            rectTransform.anchoredPosition += Vector2.down * 56f;
+        }
+
+        SetButtonText(resolvedHairDryerButton, hairDryerUpgradeText);
+        SetButtonText(coconutTreeUpgradeButton, coconutTreeUpgradeText);
+    }
+
+    private static void SetUpgradeButtonText(Button button, string label, int currentLevel, int maxLevel, int nextCost)
+    {
+        if (currentLevel >= maxLevel)
+        {
+            SetButtonText(button, $"{label}（已满级）");
+            return;
+        }
+
+        SetButtonText(button, $"{label} Lv.{currentLevel + 1}（{nextCost} 椰子）");
+    }
+
+    private static void SetButtonText(Button button, string text)
+    {
+        TMP_Text label = button != null ? button.GetComponentInChildren<TMP_Text>() : null;
+        if (label != null)
+        {
+            label.text = text;
+        }
     }
 
     public void ShowNote(string text, Action onClosed = null)

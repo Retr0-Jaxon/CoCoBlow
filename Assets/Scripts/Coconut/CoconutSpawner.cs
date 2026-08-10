@@ -66,11 +66,18 @@ public class CoconutSpawner : MonoBehaviour
     public void SetSpawnInterval(float interval)
     {
         spawnInterval = Mathf.Max(0.5f, interval);
+        spawnTimer = Mathf.Min(spawnTimer, spawnInterval);
     }
 
     public void SetMaxActiveCoconuts(int maxCount)
     {
+        int previousMaxActiveCoconuts = maxActiveCoconuts;
         maxActiveCoconuts = Mathf.Max(1, maxCount);
+
+        if (maxActiveCoconuts > previousMaxActiveCoconuts)
+        {
+            FillAvailableSpawnPoints();
+        }
     }
 
     public void UnregisterCoconut(Coconut coconut)
