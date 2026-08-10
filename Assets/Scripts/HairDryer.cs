@@ -99,10 +99,8 @@ public class HairDryer : MonoBehaviour
 
     private void Update()
     {
-        bool prevBlowing = isBlowingPhysics;
         UpdateBlowingState();
         UpdateRangeVisual();
-        ProcessSound(prevBlowing);
     }
 
     private void FixedUpdate()
@@ -255,19 +253,5 @@ public class HairDryer : MonoBehaviour
         {
             rangeVisual.StopFade();
         }
-    }
-
-    //ParaNoite留言：别删呗，我留着处理声音的
-    private void ProcessSound(bool prevBlowing)
-    {
-        if (isBlowingPhysics && !prevBlowing)
-            AudioManager.PlayAudio("dryer_on", false);
-        else if (!isBlowingPhysics && prevBlowing)
-            AudioManager.PlayAudio("dryer_off", false);
-
-        if (isBlowingPhysics && prevBlowing)
-            AudioManager.PlayAudio("dryer_loop", true);
-        else if (!isBlowingPhysics)
-            AudioManager.StopAudio("dryer_loop");
     }
 }
