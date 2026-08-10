@@ -1369,7 +1369,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u5DF2\u6536\u96C6\u6930\u5B50\u6570\u91CF : 83"
+  m_text: "\u5DF2\u6536\u96C6\u6930\u5B50\u6570\u91CF : "
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5a104f92d758eed4f9bd9afe85ca278c, type: 2}
   m_sharedMaterial: {fileID: 3263817828423612825, guid: 5a104f92d758eed4f9bd9afe85ca278c,
@@ -3562,7 +3562,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1485751688
 RectTransform:
   m_ObjectHideFlags: 0
@@ -6108,7 +6108,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2037843075
 RectTransform:
   m_ObjectHideFlags: 0
