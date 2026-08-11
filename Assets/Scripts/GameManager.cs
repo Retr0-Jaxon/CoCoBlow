@@ -170,9 +170,19 @@ public class GameManager : MonoBehaviour
         return GetNextUpgradeCost(hairDryerUpgradeStages, hairDryerUpgradeLevel);
     }
 
+    public int GetHairDryerUpgradeCost(int level)
+    {
+        return GetUpgradeCost(hairDryerUpgradeStages, level);
+    }
+
     public int GetNextCoconutTreeUpgradeCost()
     {
         return GetNextUpgradeCost(coconutTreeUpgradeStages, coconutTreeUpgradeLevel);
+    }
+
+    public int GetCoconutTreeUpgradeCost(int level)
+    {
+        return GetUpgradeCost(coconutTreeUpgradeStages, level);
     }
 
     public bool CanReadNote(int index)
@@ -244,6 +254,11 @@ public class GameManager : MonoBehaviour
     }
 
     private int GetNextUpgradeCost(UpgradeStage[] stages, int level)
+    {
+        return GetUpgradeCost(stages, level);
+    }
+
+    private int GetUpgradeCost(UpgradeStage[] stages, int level)
     {
         return TryGetUpgradeStage(stages, level, out UpgradeStage stage) ? stage.cost : 0;
     }

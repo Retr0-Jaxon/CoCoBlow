@@ -6,8 +6,19 @@ public class Coconut : MonoBehaviour
     private float releaseWindForceThreshold = 120f;
     private float releaseImpulse = 2f;
     [SerializeField] private float windIgnoreDurationAfterRelease = 0.3f;
+
+    [Header("Wobble (attached only)")]
+    [SerializeField] private float maxWobbleAngle = 12f;
+    [SerializeField] private float wobbleFrequency = 10f;
+    [SerializeField] private float wobbleIntensityGain = 0.35f;
+    [SerializeField] private float wobbleDecaySpeed = 4f;
+    [SerializeField, Range(0f, 1f)] private float progressWobbleWeight = 0.45f;
+
     private float windForceAccumulator;
     private float windIgnoreUntilTime;
+    private float wobbleIntensity;
+    private float wobblePhase;
+    private Vector3 wobbleWindDirection = Vector3.forward;
 
     private Rigidbody body;
     private CoconutSpawner spawner;
@@ -48,6 +59,7 @@ public class Coconut : MonoBehaviour
         IsAttached = true;
         windForceAccumulator = 0f;
         windIgnoreUntilTime = 0f;
+        ResetWobbleState();
 
         transform.SetParent(spawnPoint.transform, false);
         transform.localPosition = Vector3.zero;
@@ -69,11 +81,22 @@ public class Coconut : MonoBehaviour
         windForceAccumulator += forceMagnitude * Time.fixedDeltaTime;
         if (windForceAccumulator < releaseWindForceThreshold)
         {
+            FeedWobble(forceDirection, forceMagnitude);
             return false;
         }
 
         ReleaseFromTree(CalculateReleaseImpulse(forceDirection));
         return true;
+    }
+
+    private void Update()
+    {
+        if (!IsAttached)
+        {
+            return;
+        }
+
+        UpdateWobbleVisual();
     }
 
     public void ReleaseFromTree(Vector3 initialImpulse)
@@ -85,6 +108,11 @@ public class Coconut : MonoBehaviour
 
         IsAttached = false;
         windIgnoreUntilTime = Time.time + windIgnoreDurationAfterRelease;
+        ResetWobbleState();
+
+        // Restore rest pose before leaving the spawn point so wobble tilt does not carry into physics.
+        transform.localPosition = Vector3.zero;
+        transform.localRotation = Quaternion.identity;
         transform.SetParent(null, true);
 
         if (spawnPoint != null)
@@ -93,6 +121,8 @@ public class Coconut : MonoBehaviour
             spawnPoint = null;
         }
 
+        body.velocity = Vector3.zero;
+        body.angularVelocity = Vector3.zero;
         body.isKinematic = false;
         body.useGravity = true;
         body.AddForce(initialImpulse, ForceMode.Impulse);
@@ -113,6 +143,60 @@ public class Coconut : MonoBehaviour
     public void MarkSubmitted()
     {
         IsSubmitted = true;
+    }
+
+    private void FeedWobble(Vector3 forceDirection, float forceMagnitude)
+    {
+        Vector3 horizontalDirection = Vector3.ProjectOnPlane(forceDirection, Vector3.up);
+        if (horizontalDirection.sqrMagnitude > 0.0001f)
+        {
+            wobbleWindDirection = horizontalDirection.normalized;
+        }
+
+        float windContribution = Mathf.Clamp01(forceMagnitude * wobbleIntensityGain);
+        float progressContribution = releaseWindForceThreshold > 0f
+            ? windForceAccumulator / releaseWindForceThreshold * progressWobbleWeight
+            : 0f;
+        float targetIntensity = Mathf.Clamp01(windContribution + progressContribution);
+        wobbleIntensity = Mathf.Max(wobbleIntensity, targetIntensity);
+    }
+
+    private void UpdateWobbleVisual()
+    {
+        wobbleIntensity = Mathf.MoveTowards(wobbleIntensity, 0f, wobbleDecaySpeed * Time.deltaTime);
+        if (wobbleIntensity <= 0.001f)
+        {
+            transform.localRotation = Quaternion.identity;
+            return;
+        }
+
+        wobblePhase += Time.deltaTime * wobbleFrequency * Mathf.PI * 2f;
+        float swingAngle = Mathf.Sin(wobblePhase) * wobbleIntensity * maxWobbleAngle;
+        float secondaryAngle = Mathf.Sin(wobblePhase * 0.7f + 0.6f) * wobbleIntensity * maxWobbleAngle * 0.35f;
+
+        Vector3 primaryAxis = Vector3.Cross(wobbleWindDirection, Vector3.up);
+        if (primaryAxis.sqrMagnitude <= 0.0001f)
+        {
+            primaryAxis = Vector3.right;
+        }
+
+        Vector3 secondaryAxis = Vector3.Cross(primaryAxis, Vector3.up);
+        if (secondaryAxis.sqrMagnitude <= 0.0001f)
+        {
+            secondaryAxis = Vector3.forward;
+        }
+
+        Quaternion wobbleRotation =
+            Quaternion.AngleAxis(swingAngle, primaryAxis.normalized) *
+            Quaternion.AngleAxis(secondaryAngle, secondaryAxis.normalized);
+        transform.localRotation = wobbleRotation;
+    }
+
+    private void ResetWobbleState()
+    {
+        wobbleIntensity = 0f;
+        wobblePhase = 0f;
+        wobbleWindDirection = Vector3.forward;
     }
 
     private void OnDestroy()
