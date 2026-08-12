@@ -10,11 +10,14 @@ public class DarkZone : MonoBehaviour
 
     [Header("Settings")]
     [SerializeField] private float countdownSeconds = 10f;
+    [SerializeField] private string darkZoneEnterSound = "teleport";
+    [SerializeField] private float darkZoneSoundCooldown = 0.4f;
 
     private Collider zoneCollider;
     private CharacterController playerController;
     private float remainingTime;
     private bool isPlayerInSafeZone = true;
+    private float lastDarkZoneSoundPlayedAt = -999f;
 
     private void Awake()
     {
@@ -113,13 +116,25 @@ public class DarkZone : MonoBehaviour
     {
         remainingTime = countdownSeconds;
         UpdateHud(false);
+        AudioManager.StopAudio(darkZoneEnterSound);
     }
 
     private void LeaveSafeZone()
     {
         remainingTime = countdownSeconds;
         UpdateHud(true);
-        AudioManager.PlayAudio("teleport", false);
+        TryPlayDarkZoneSound();
+    }
+
+    private void TryPlayDarkZoneSound()
+    {
+        if (Time.time - lastDarkZoneSoundPlayedAt < darkZoneSoundCooldown)
+        {
+            return;
+        }
+
+        lastDarkZoneSoundPlayedAt = Time.time;
+        AudioManager.PlayAudio(darkZoneEnterSound, true);
     }
 
     private void RespawnPlayer()
@@ -152,6 +167,11 @@ public class DarkZone : MonoBehaviour
         isPlayerInSafeZone = IsPlayerInsideSafeZone();
         remainingTime = countdownSeconds;
         UpdateHud(!isPlayerInSafeZone);
+
+        if (isPlayerInSafeZone)
+        {
+            AudioManager.StopAudio(darkZoneEnterSound);
+        }
     }
 
     private void UpdateHud(bool showCountdown)

@@ -41,8 +41,18 @@ public class SimplePanelUI : MonoBehaviour
     [SerializeField] private TMP_Text upgradeDescriptionText;
     [SerializeField] private Button upgradeActionButton;
     [SerializeField] private UpgradeLayoutPreset[] layoutPresets;
-    [SerializeField] private string hairDryerDescriptionText = "提升吹风机风力、射程和瞄准范围。";
-    [SerializeField] private string coconutTreeDescriptionText = "提升椰子树生成速度和树上最大椰子数量。";
+    [SerializeField] private string[] hairDryerDescriptionTexts =
+    {
+        "提升吹风机风力、射程和瞄准范围。",
+        "进一步提升吹风机风力、射程和瞄准范围。",
+        "吹风机达到最大强化，风力、射程和瞄准范围全面提升。"
+    };
+    [SerializeField] private string[] coconutTreeDescriptionTexts =
+    {
+        "提升椰子树生成速度和树上最大椰子数量。",
+        "进一步提升椰子树生成速度和树上最大椰子数量。",
+        "椰子树达到最大强化，生成更快、容量更大。"
+    };
 
     [Header("Ending Panel")]
     [SerializeField] private Button endingCloseButton;
@@ -411,9 +421,16 @@ public class SimplePanelUI : MonoBehaviour
 
     private string GetSelectedUpgradeDescription()
     {
-        return selectedUpgradeCategory == UpgradeCategory.HairDryer
-            ? hairDryerDescriptionText
-            : coconutTreeDescriptionText;
+        string[] descriptions = selectedUpgradeCategory == UpgradeCategory.HairDryer
+            ? hairDryerDescriptionTexts
+            : coconutTreeDescriptionTexts;
+
+        if (descriptions == null || selectedUpgradeNodeIndex < 0 || selectedUpgradeNodeIndex >= descriptions.Length)
+        {
+            return string.Empty;
+        }
+
+        return descriptions[selectedUpgradeNodeIndex] ?? string.Empty;
     }
 
     private void SetUpgradeTreeTexts(string title, string status, string description)
