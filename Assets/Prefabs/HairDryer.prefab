@@ -469,6 +469,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3510453285199252877, guid: c958d0aaed2060a4ca9d9607ccea9ad7,
+        type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 7746755970107007642, guid: c958d0aaed2060a4ca9d9607ccea9ad7,
         type: 3}
       propertyPath: hairDryer
