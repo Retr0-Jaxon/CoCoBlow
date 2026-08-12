@@ -88,9 +88,11 @@ public class HairDryer : MonoBehaviour
 
     private void Update()
     {
+        bool prevBlowing = isBlowingPhysics;
         bool mousePressed = IsMouseBlowPressed();
         isBlowingPhysics = isHeld && mousePressed;
         UpdateRangeVisual();
+        ProcessSound(prevBlowing);
     }
 
     private void FixedUpdate()
@@ -185,6 +187,27 @@ public class HairDryer : MonoBehaviour
         else
         {
             rangeVisual.StopFade();
+        }
+    }
+
+    private void ProcessSound(bool prevBlowing)
+    {
+        if (isBlowingPhysics && !prevBlowing)
+        {
+            AudioManager.PlayAudio("on", false);
+        }
+        else if (!isBlowingPhysics && prevBlowing)
+        {
+            AudioManager.PlayAudio("off", false);
+        }
+
+        if (isBlowingPhysics && prevBlowing)
+        {
+            AudioManager.PlayAudio("hair_dryer", true);
+        }
+        else if (!isBlowingPhysics)
+        {
+            AudioManager.StopAudio("hair_dryer");
         }
     }
 }

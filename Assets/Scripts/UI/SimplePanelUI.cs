@@ -155,6 +155,7 @@ public class SimplePanelUI : MonoBehaviour
     {
         if (gameManager != null && gameManager.TryUpgradeHairDryer())
         {
+            AudioManager.PlayAudio("upgraded", false);
             RefreshUpgradeButtons();
         }
     }
@@ -163,6 +164,7 @@ public class SimplePanelUI : MonoBehaviour
     {
         if (gameManager != null && gameManager.TryUpgradeCoconutTree())
         {
+            AudioManager.PlayAudio("upgraded", false);
             RefreshUpgradeButtons();
         }
     }
@@ -180,6 +182,7 @@ public class SimplePanelUI : MonoBehaviour
 
         if (upgraded)
         {
+            AudioManager.PlayAudio("upgraded", false);
             RefreshUpgradeButtons();
         }
     }
@@ -192,6 +195,7 @@ public class SimplePanelUI : MonoBehaviour
         }
 
         HideUpgradeSubMenu();
+        AudioManager.PlayAudio("exited", false);
         HideActivePanel();
     }
 
@@ -534,6 +538,7 @@ public class SimplePanelUI : MonoBehaviour
 
         Action callback = onNoteClosed;
         onNoteClosed = null;
+        AudioManager.PlayAudio("exited", false);
         HideActivePanel();
         callback?.Invoke();
     }

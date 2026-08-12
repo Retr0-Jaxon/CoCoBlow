@@ -25,6 +25,7 @@ public class ChairInteract : MonoBehaviour, IInteractable
         }
 
         panelUI.ShowUpgradePanel();
+        AudioManager.PlayAudio("entered_upgrade", false);
     }
 
     public string GetHintText()

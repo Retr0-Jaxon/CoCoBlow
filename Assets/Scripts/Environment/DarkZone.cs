@@ -119,6 +119,7 @@ public class DarkZone : MonoBehaviour
     {
         remainingTime = countdownSeconds;
         UpdateHud(true);
+        AudioManager.PlayAudio("teleport", false);
     }
 
     private void RespawnPlayer()
