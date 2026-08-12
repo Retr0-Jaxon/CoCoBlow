@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Images.meta
 guid: b8b42e8cc8095f047a2d05f350c5bcb6
+========
+guid: 8c762dd16a267e04e97984505df6a276
+>>>>>>>> origin/main:Assets/Screenshots.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}

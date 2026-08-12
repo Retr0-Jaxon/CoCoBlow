@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-*.unity  merge=unityyamlmerge eol=lf
-*.prefab merge=unityyamlmerge eol=lf
-*.asset  merge=unityyamlmerge eol=lf
-=======
 *.unity merge=unityyamlmerge eol=lf
 *.prefab merge=unityyamlmerge eol=lf
 *.asset merge=unityyamlmerge eol=lf
@@ -14,4 +9,3 @@
 *.mask merge=unityyamlmerge eol=lf
 *.physicMaterial merge=unityyamlmerge eol=lf
 *.physicsMaterial2D merge=unityyamlmerge eol=lf
->>>>>>> parent of ef31bc2 (Revert "Merge pull request #6 from Retr0-Jaxon/ParaNoite/test2")

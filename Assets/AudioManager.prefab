@@ -90,7 +90,7 @@ MonoBehaviour:
     israndomPitch: 0
     source: {fileID: 0}
   - clip: {fileID: 8300000, guid: 0496e0bb3d6589b4792198d2c94b2c2b, type: 3}
-    name: fan2
+    name: hair_dryer
     outputGroup: {fileID: -1507078056785280070, guid: 9aa3fa9f7dc39b24bb71e4a4d0bc50d7,
       type: 2}
     volume: 1

@@ -30,6 +30,7 @@ public class NoteInteract : MonoBehaviour, IInteractable
         panelUI.ShowNote(
             GameManager.Instance.GetNoteContent(noteIndex),
             () => GameManager.Instance.OnNoteRead(noteIndex));
+        AudioManager.PlayAudio("click", false);
     }
 
     public string GetHintText()

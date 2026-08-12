@@ -400,6 +400,7 @@ MonoBehaviour:
   blowOnLeftMouse: 0
   clickBurstDuration: 0.05
   nozzle: {fileID: 6158877332281677745}
+  windLocalDirection: {x: 0, y: 1, z: 0}
   rangeVisual: {fileID: 7112440906504416874}
   isHeld: 0
   canBePickedUp: 1

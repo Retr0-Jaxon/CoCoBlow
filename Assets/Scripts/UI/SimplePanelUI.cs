@@ -6,280 +6,624 @@ using UnityEngine.UI;
 
 public class SimplePanelUI : MonoBehaviour
 {
+    public enum UpgradeCategory
+    {
+        HairDryer,
+        CoconutTree
+    }
+
     [Header("Panels")]
     [SerializeField] private GameObject upgradePanel;
     [SerializeField] private GameObject notePanel;
     [SerializeField] private GameObject endingPanel;
 
+    [Header("References")]
+    [SerializeField] private GameManager gameManager;
+
     [Header("Note Panel")]
     [SerializeField] private TMP_Text noteText;
     [SerializeField] private Button noteCloseButton;
 
+    [Header("Upgrade Panel")]
+    [SerializeField] private Button upgradeButton;
+    [SerializeField] private Button hairDryerUpgradeButton;
+    [SerializeField] private Button coconutTreeUpgradeButton;
+    [SerializeField] private Button upgradeCloseButton;
+    [SerializeField] private string hairDryerUpgradeText = "升级吹风机";
+    [SerializeField] private string coconutTreeUpgradeText = "升级椰子树";
+
+    [Header("Upgrade Tree")]
+    [SerializeField] private GameObject upgradeSubMenu;
+    [SerializeField] private Image upgradeLayoutImage;
+    [SerializeField] private RectTransform upgradePanelContent;
+    [SerializeField] private TMP_Text upgradeTitleText;
+    [SerializeField] private TMP_Text upgradeStatusText;
+    [SerializeField] private TMP_Text upgradeDescriptionText;
+    [SerializeField] private Button upgradeActionButton;
+    [SerializeField] private UpgradeLayoutPreset[] layoutPresets;
+    [SerializeField] private string[] hairDryerDescriptionTexts =
+    {
+        "提升吹风机风力、射程和瞄准范围。",
+        "进一步提升吹风机风力、射程和瞄准范围。",
+        "吹风机达到最大强化，风力、射程和瞄准范围全面提升。"
+    };
+    [SerializeField] private string[] coconutTreeDescriptionTexts =
+    {
+        "提升椰子树生成速度和树上最大椰子数量。",
+        "进一步提升椰子树生成速度和树上最大椰子数量。",
+        "椰子树达到最大强化，生成更快、容量更大。"
+    };
+
     [Header("Ending Panel")]
     [SerializeField] private Button endingCloseButton;
 
-    private readonly TechnologyId[] technologyIds =
-    {
-        TechnologyId.HairDryer,
-        TechnologyId.ElectricFan,
-        TechnologyId.FasterCoconutSpawn,
-        TechnologyId.UnlockNote
-    };
-
-    private readonly EquipmentId[] equipmentIds = { EquipmentId.HairDryer, EquipmentId.ElectricFan };
-    private readonly EquipmentStat[] equipmentStats = { EquipmentStat.WindForce, EquipmentStat.WindRange, EquipmentStat.WindAngle };
-
     private GameObject activePanel;
     private Action onNoteClosed;
-    private GameObject technologyPage;
-    private GameObject equipmentPage;
-    private GameObject emptyEquipmentMessage;
-    private Button technologyTab;
-    private Button equipmentTab;
-    private Button upgradeCloseButton;
-    private TMP_Text[] technologyStatusTexts;
-    private Button[] technologyButtons;
-    private GameObject[] equipmentSections;
-    private TMP_Text[,] equipmentStatusTexts;
-    private Button[,] equipmentButtons;
-    private bool showingTechnology = true;
+    private UpgradeCategory selectedUpgradeCategory;
+    private int selectedUpgradeNodeIndex = -1;
+    private UpgradeSubMenuLayout selectedLayout;
+    private const float ReferenceWidth = 1920f;
+    private const float ReferenceHeight = 1080f;
 
     public bool IsOpen => activePanel != null;
 
     private void Awake()
     {
-        if (noteCloseButton != null) noteCloseButton.onClick.AddListener(CloseNotePanel);
-        if (endingCloseButton != null) endingCloseButton.onClick.AddListener(CloseEndingPanel);
-        CacheUpgradePanelObjects();
-        BindUpgradePanelButtons();
+        if (gameManager == null)
+        {
+            gameManager = GameManager.Instance != null
+                ? GameManager.Instance
+                : FindObjectOfType<GameManager>();
+        }
+
+        EnsureUpgradeButtons();
+
+        if (noteCloseButton != null)
+        {
+            noteCloseButton.onClick.AddListener(CloseNotePanel);
+        }
+
+        if (upgradeActionButton != null)
+        {
+            upgradeActionButton.onClick.AddListener(HandleSelectedUpgradeButtonClick);
+        }
+        else
+        {
+            Button resolvedHairDryerButton = GetHairDryerUpgradeButton();
+            if (resolvedHairDryerButton != null)
+            {
+                resolvedHairDryerButton.onClick.AddListener(HandleHairDryerUpgradeButtonClick);
+            }
+
+            if (coconutTreeUpgradeButton != null)
+            {
+                coconutTreeUpgradeButton.onClick.AddListener(HandleCoconutTreeUpgradeButtonClick);
+            }
+        }
+
+        if (upgradeCloseButton != null)
+        {
+            upgradeCloseButton.onClick.AddListener(CloseUpgradePanel);
+        }
+
+        if (endingCloseButton != null)
+        {
+            endingCloseButton.onClick.AddListener(CloseEndingPanel);
+        }
+
+        SetUpgradeActionButtonActive(false);
     }
 
     private void Start()
     {
         HideAllPanelsImmediate();
-        if (GameManager.Instance != null) GameManager.Instance.ProgressChanged += RefreshUpgradePanel;
-    }
-
-    private void OnDestroy()
-    {
-        if (GameManager.Instance != null) GameManager.Instance.ProgressChanged -= RefreshUpgradePanel;
+        SetUpgradeActionButtonActive(false);
     }
 
     private void Update()
     {
-        if (!IsOpen || Keyboard.current == null || !Keyboard.current.escapeKey.wasPressedThisFrame) return;
-        if (activePanel == notePanel) CloseNotePanel();
-        else if (activePanel == upgradePanel) CloseUpgradePanel();
-        else if (activePanel == endingPanel) CloseEndingPanel();
+        if (!IsOpen)
+        {
+            return;
+        }
+
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null || !keyboard.escapeKey.wasPressedThisFrame)
+        {
+            return;
+        }
+
+        if (activePanel == notePanel)
+        {
+            CloseNotePanel();
+        }
+        else if (activePanel == upgradePanel)
+        {
+            CloseUpgradePanel();
+        }
+        else if (activePanel == endingPanel)
+        {
+            CloseEndingPanel();
+        }
     }
 
     public void ShowUpgradePanel()
     {
-        SetUpgradeTab(true);
+        selectedUpgradeNodeIndex = -1;
+        HideUpgradeSubMenu();
+        SetUpgradeActionButtonActive(false);
+        RefreshUpgradeButtons();
         ShowPanel(upgradePanel);
     }
 
-    public void HideUpgradePanel() => CloseUpgradePanel();
-
-    public void ShowNote(string text, Action onClosed = null)
+    public void HideUpgradePanel()
     {
-        onNoteClosed = onClosed;
-        if (noteText != null) noteText.text = text ?? string.Empty;
-        ShowPanel(notePanel);
+        CloseUpgradePanel();
     }
 
-    public void HideNotePanel() => CloseNotePanel();
-    public void ShowEndingPanel() => ShowPanel(endingPanel);
-    public void HideEndingPanel() => CloseEndingPanel();
-
-    private void CacheUpgradePanelObjects()
+    private void HandleHairDryerUpgradeButtonClick()
     {
-        if (upgradePanel == null) return;
-        Transform content = upgradePanel.transform.Find("Content");
-        if (content == null) return;
-
-        technologyPage = FindObject(content, "TechnologyPage");
-        equipmentPage = FindObject(content, "EquipmentPage");
-        emptyEquipmentMessage = FindObject(content, "EquipmentPage/EmptyMessage");
-        technologyTab = FindObject(content, "TechnologyTab")?.GetComponent<Button>();
-        equipmentTab = FindObject(content, "EquipmentTab")?.GetComponent<Button>();
-        upgradeCloseButton = FindObject(content, "CloseButton")?.GetComponent<Button>();
-
-        technologyStatusTexts = new TMP_Text[technologyIds.Length];
-        technologyButtons = new Button[technologyIds.Length];
-        string[] technologyNames = { "HairDryer", "ElectricFan", "FasterSpawn", "UnlockNote" };
-        for (int i = 0; i < technologyNames.Length; i++)
+        if (gameManager != null && gameManager.TryUpgradeHairDryer())
         {
-            Transform row = FindObject(content, $"TechnologyPage/{technologyNames[i]}Row")?.transform;
-            technologyStatusTexts[i] = FindObject(row, "Status")?.GetComponent<TMP_Text>();
-            technologyButtons[i] = FindObject(row, "BuyButton")?.GetComponent<Button>();
-        }
-
-        equipmentSections = new GameObject[equipmentIds.Length];
-        equipmentStatusTexts = new TMP_Text[equipmentIds.Length, equipmentStats.Length];
-        equipmentButtons = new Button[equipmentIds.Length, equipmentStats.Length];
-        string[] equipmentNames = { "HairDryer", "ElectricFan" };
-        string[] statNames = { "WindForce", "WindRange", "WindAngle" };
-        for (int equipment = 0; equipment < equipmentNames.Length; equipment++)
-        {
-            Transform section = FindObject(content, $"EquipmentPage/{equipmentNames[equipment]}Section")?.transform;
-            equipmentSections[equipment] = section != null ? section.gameObject : null;
-            for (int stat = 0; stat < statNames.Length; stat++)
-            {
-                Transform row = FindObject(section, statNames[stat] + "Row")?.transform;
-                equipmentStatusTexts[equipment, stat] = FindObject(row, "Status")?.GetComponent<TMP_Text>();
-                equipmentButtons[equipment, stat] = FindObject(row, "UpgradeButton")?.GetComponent<Button>();
-            }
+            AudioManager.PlayAudio("upgraded", false);
+            RefreshUpgradeButtons();
         }
     }
 
-    private void BindUpgradePanelButtons()
+    private void HandleCoconutTreeUpgradeButtonClick()
     {
-        if (technologyTab != null) technologyTab.onClick.AddListener(() => SetUpgradeTab(true));
-        if (equipmentTab != null) equipmentTab.onClick.AddListener(() => SetUpgradeTab(false));
-        if (upgradeCloseButton != null) upgradeCloseButton.onClick.AddListener(CloseUpgradePanel);
-
-        for (int i = 0; i < technologyButtons.Length; i++)
+        if (gameManager != null && gameManager.TryUpgradeCoconutTree())
         {
-            int index = i;
-            if (technologyButtons[i] != null)
-                technologyButtons[i].onClick.AddListener(() => GameManager.Instance?.TryPurchaseTechnology(technologyIds[index]));
-        }
-
-        for (int equipment = 0; equipment < equipmentIds.Length; equipment++)
-        {
-            for (int stat = 0; stat < equipmentStats.Length; stat++)
-            {
-                int equipmentIndex = equipment;
-                int statIndex = stat;
-                if (equipmentButtons[equipment, stat] != null)
-                    equipmentButtons[equipment, stat].onClick.AddListener(() => GameManager.Instance?.TryUpgradeEquipment(equipmentIds[equipmentIndex], equipmentStats[statIndex]));
-            }
+            AudioManager.PlayAudio("upgraded", false);
+            RefreshUpgradeButtons();
         }
     }
 
-    private void SetUpgradeTab(bool technology)
+    private void HandleSelectedUpgradeButtonClick()
     {
-        showingTechnology = technology;
-        if (technologyPage != null) technologyPage.SetActive(technology);
-        if (equipmentPage != null) equipmentPage.SetActive(!technology);
-        SetTabColor(technologyTab, technology);
-        SetTabColor(equipmentTab, !technology);
-        RefreshUpgradePanel();
-    }
-
-    private void RefreshUpgradePanel()
-    {
-        GameManager manager = GameManager.Instance;
-        if (manager == null || technologyStatusTexts == null) return;
-
-        for (int i = 0; i < technologyIds.Length; i++)
+        if (gameManager == null || selectedUpgradeNodeIndex < 0 || !CanUpgradeSelectedNode())
         {
-            TechnologyId technology = technologyIds[i];
-            bool purchased = manager.IsTechnologyPurchased(technology);
-            SetText(technologyStatusTexts[i], purchased ? "已购买" : $"{manager.GetTechnologyCost(technology)} 个椰子");
-            if (technologyButtons[i] != null)
-            {
-                technologyButtons[i].interactable = manager.CanPurchaseTechnology(technology);
-                SetButtonLabel(technologyButtons[i], purchased ? "已完成" : "购买");
-            }
+            return;
         }
 
-        bool hasEquipment = false;
-        for (int equipment = 0; equipment < equipmentIds.Length; equipment++)
+        bool upgraded = selectedUpgradeCategory == UpgradeCategory.HairDryer
+            ? gameManager.TryUpgradeHairDryer()
+            : gameManager.TryUpgradeCoconutTree();
+
+        if (upgraded)
         {
-            bool owned = manager.HasEquipment(equipmentIds[equipment]);
-            if (equipmentSections[equipment] != null) equipmentSections[equipment].SetActive(owned);
-            hasEquipment |= owned;
-
-            for (int stat = 0; stat < equipmentStats.Length; stat++)
-            {
-                if (!owned) continue;
-                int level = manager.GetEquipmentLevel(equipmentIds[equipment], equipmentStats[stat]);
-                int cost = manager.GetEquipmentUpgradeCost(equipmentIds[equipment], equipmentStats[stat]);
-                string name = equipmentStats[stat] == EquipmentStat.WindForce ? "风力" : equipmentStats[stat] == EquipmentStat.WindRange ? "距离" : "角度";
-                SetText(equipmentStatusTexts[equipment, stat], cost == 0
-                    ? $"{name}  Lv.{level}/3  已满级"
-                    : $"{name}  Lv.{level}/3  下一档：{manager.GetNextUpgradeDescription(equipmentIds[equipment], equipmentStats[stat])}");
-                if (equipmentButtons[equipment, stat] != null)
-                {
-                    equipmentButtons[equipment, stat].interactable = cost > 0 && manager.CoconutCount >= cost;
-                    SetButtonLabel(equipmentButtons[equipment, stat], cost == 0 ? "满级" : $"{cost} 椰子");
-                }
-            }
+            AudioManager.PlayAudio("upgraded", false);
+            RefreshUpgradeButtons();
         }
-
-        if (emptyEquipmentMessage != null) emptyEquipmentMessage.SetActive(!hasEquipment);
-    }
-
-    private static GameObject FindObject(Transform parent, string path)
-    {
-        if (parent == null) return null;
-        Transform found = parent.Find(path);
-        return found != null ? found.gameObject : null;
-    }
-
-    private static void SetText(TMP_Text text, string value)
-    {
-        if (text != null) text.text = value;
-    }
-
-    private static void SetButtonLabel(Button button, string value)
-    {
-        if (button == null) return;
-        TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
-        if (label != null) label.text = value;
-    }
-
-    private static void SetTabColor(Button button, bool active)
-    {
-        if (button != null && button.targetGraphic is Image image)
-            image.color = active ? new Color(0.18f, 0.62f, 0.66f, 1f) : new Color(0.16f, 0.42f, 0.48f, 1f);
     }
 
     private void CloseUpgradePanel()
     {
-        if (activePanel == upgradePanel) HideActivePanel();
+        if (activePanel != upgradePanel)
+        {
+            return;
+        }
+
+        HideUpgradeSubMenu();
+        AudioManager.PlayAudio("exited", false);
+        HideActivePanel();
     }
 
-    private void CloseNotePanel()
+    public void SelectHairDryerUpgradeNode(int nodeIndex, UpgradeSubMenuLayout layout)
     {
-        if (activePanel != notePanel) return;
+        SelectUpgradeNode(UpgradeCategory.HairDryer, nodeIndex, layout);
+    }
+
+    public void SelectCoconutTreeUpgradeNode(int nodeIndex, UpgradeSubMenuLayout layout)
+    {
+        SelectUpgradeNode(UpgradeCategory.CoconutTree, nodeIndex, layout);
+    }
+
+    private void SelectUpgradeNode(UpgradeCategory category, int nodeIndex, UpgradeSubMenuLayout layout)
+    {
+        selectedUpgradeCategory = category;
+        selectedUpgradeNodeIndex = Mathf.Max(0, nodeIndex);
+        selectedLayout = layout;
+
+        if (upgradeSubMenu != null)
+        {
+            upgradeSubMenu.SetActive(true);
+            ApplySelectedLayout();
+        }
+
+        SetUpgradeActionButtonActive(true);
+        RefreshUpgradeButtons();
+    }
+
+    private void ApplySelectedLayout()
+    {
+        if (!TryGetLayoutPreset(selectedLayout, out UpgradeLayoutPreset preset))
+        {
+            return;
+        }
+
+        if (upgradeLayoutImage != null)
+        {
+            upgradeLayoutImage.sprite = preset.layoutSprite;
+            upgradeLayoutImage.color = Color.white;
+            upgradeLayoutImage.raycastTarget = false;
+        }
+
+        if (upgradePanelContent != null)
+        {
+            ApplyTopLeftPixelRect(upgradePanelContent, preset.panelRect);
+        }
+
+        if (upgradeActionButton != null)
+        {
+            ApplyTopLeftPixelRect(upgradeActionButton.GetComponent<RectTransform>(), preset.buttonRect);
+        }
+    }
+
+    private bool TryGetLayoutPreset(UpgradeSubMenuLayout layout, out UpgradeLayoutPreset preset)
+    {
+        if (layoutPresets != null)
+        {
+            foreach (UpgradeLayoutPreset candidate in layoutPresets)
+            {
+                if (candidate.layout == layout)
+                {
+                    preset = candidate;
+                    return true;
+                }
+            }
+        }
+
+        preset = default;
+        return false;
+    }
+
+    private static void ApplyTopLeftPixelRect(RectTransform rectTransform, Rect pixelRect)
+    {
+        if (rectTransform == null || pixelRect.width <= 0f || pixelRect.height <= 0f)
+        {
+            return;
+        }
+
+        float minX = pixelRect.x / ReferenceWidth;
+        float maxX = (pixelRect.x + pixelRect.width) / ReferenceWidth;
+        float minY = (ReferenceHeight - pixelRect.y - pixelRect.height) / ReferenceHeight;
+        float maxY = (ReferenceHeight - pixelRect.y) / ReferenceHeight;
+
+        rectTransform.anchorMin = new Vector2(minX, minY);
+        rectTransform.anchorMax = new Vector2(maxX, maxY);
+        rectTransform.offsetMin = Vector2.zero;
+        rectTransform.offsetMax = Vector2.zero;
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+    }
+
+    private void RefreshUpgradeButtons()
+    {
+        if (gameManager == null)
+        {
+            return;
+        }
+
+        if (upgradeActionButton != null)
+        {
+            RefreshSelectedUpgradeButton();
+            return;
+        }
+
+        Button resolvedHairDryerButton = GetHairDryerUpgradeButton();
+        if (resolvedHairDryerButton != null)
+        {
+            resolvedHairDryerButton.interactable = gameManager.CanUpgradeHairDryer;
+            SetUpgradeButtonText(
+                resolvedHairDryerButton,
+                hairDryerUpgradeText,
+                gameManager.HairDryerUpgradeLevel,
+                gameManager.MaxHairDryerUpgradeLevel,
+                gameManager.GetNextHairDryerUpgradeCost());
+        }
+
+        if (coconutTreeUpgradeButton != null)
+        {
+            coconutTreeUpgradeButton.interactable = gameManager.CanUpgradeCoconutTree;
+            SetUpgradeButtonText(
+                coconutTreeUpgradeButton,
+                coconutTreeUpgradeText,
+                gameManager.CoconutTreeUpgradeLevel,
+                gameManager.MaxCoconutTreeUpgradeLevel,
+                gameManager.GetNextCoconutTreeUpgradeCost());
+        }
+    }
+
+    private void RefreshSelectedUpgradeButton()
+    {
+        if (selectedUpgradeNodeIndex < 0)
+        {
+            SetUpgradeTreeTexts("选择椰子节点", "点击任意椰子查看升级内容。", string.Empty);
+            upgradeActionButton.interactable = false;
+            SetButtonText(upgradeActionButton, "升级");
+            return;
+        }
+
+        string label = GetSelectedUpgradeLabel();
+        int currentLevel = GetSelectedCurrentLevel();
+        int maxLevel = GetSelectedMaxLevel();
+        int cost = GetSelectedUpgradeCost(selectedUpgradeNodeIndex);
+        bool isCurrentNode = selectedUpgradeNodeIndex == currentLevel;
+        bool canUpgrade = CanUpgradeSelectedNode();
+
+        string title = $"{label} Lv.{selectedUpgradeNodeIndex + 1}";
+        string status;
+        if (selectedUpgradeNodeIndex < currentLevel)
+        {
+            status = "已升级";
+        }
+        else if (selectedUpgradeNodeIndex >= maxLevel)
+        {
+            status = "已满级";
+        }
+        else if (selectedUpgradeNodeIndex > currentLevel)
+        {
+            status = "需要先完成前置升级";
+        }
+        else if (!canUpgrade)
+        {
+            status = $"需要 {cost} 椰子";
+        }
+        else
+        {
+            status = $"消耗 {cost} 椰子升级";
+        }
+
+        SetUpgradeTreeTexts(title, status, GetSelectedUpgradeDescription());
+        upgradeActionButton.interactable = canUpgrade && isCurrentNode;
+        SetButtonText(upgradeActionButton, selectedUpgradeNodeIndex < currentLevel ? "已升级" : "升级");
+    }
+
+    private bool CanUpgradeSelectedNode()
+    {
+        if (gameManager == null || selectedUpgradeNodeIndex < 0)
+        {
+            return false;
+        }
+
+        return selectedUpgradeCategory == UpgradeCategory.HairDryer
+            ? selectedUpgradeNodeIndex == gameManager.HairDryerUpgradeLevel && gameManager.CanUpgradeHairDryer
+            : selectedUpgradeNodeIndex == gameManager.CoconutTreeUpgradeLevel && gameManager.CanUpgradeCoconutTree;
+    }
+
+    private int GetSelectedCurrentLevel()
+    {
+        return selectedUpgradeCategory == UpgradeCategory.HairDryer
+            ? gameManager.HairDryerUpgradeLevel
+            : gameManager.CoconutTreeUpgradeLevel;
+    }
+
+    private int GetSelectedMaxLevel()
+    {
+        return selectedUpgradeCategory == UpgradeCategory.HairDryer
+            ? gameManager.MaxHairDryerUpgradeLevel
+            : gameManager.MaxCoconutTreeUpgradeLevel;
+    }
+
+    private int GetSelectedUpgradeCost(int nodeIndex)
+    {
+        return selectedUpgradeCategory == UpgradeCategory.HairDryer
+            ? gameManager.GetHairDryerUpgradeCost(nodeIndex)
+            : gameManager.GetCoconutTreeUpgradeCost(nodeIndex);
+    }
+
+    private string GetSelectedUpgradeLabel()
+    {
+        return selectedUpgradeCategory == UpgradeCategory.HairDryer
+            ? hairDryerUpgradeText
+            : coconutTreeUpgradeText;
+    }
+
+    private string GetSelectedUpgradeDescription()
+    {
+        string[] descriptions = selectedUpgradeCategory == UpgradeCategory.HairDryer
+            ? hairDryerDescriptionTexts
+            : coconutTreeDescriptionTexts;
+
+        if (descriptions == null || selectedUpgradeNodeIndex < 0 || selectedUpgradeNodeIndex >= descriptions.Length)
+        {
+            return string.Empty;
+        }
+
+        return descriptions[selectedUpgradeNodeIndex] ?? string.Empty;
+    }
+
+    private void SetUpgradeTreeTexts(string title, string status, string description)
+    {
+        if (upgradeTitleText != null)
+        {
+            upgradeTitleText.text = title;
+        }
+
+        if (upgradeStatusText != null)
+        {
+            upgradeStatusText.text = status;
+        }
+
+        if (upgradeDescriptionText != null)
+        {
+            upgradeDescriptionText.text = description;
+        }
+    }
+
+    private void HideUpgradeSubMenu()
+    {
+        if (upgradeSubMenu != null)
+        {
+            upgradeSubMenu.SetActive(false);
+        }
+
+        SetUpgradeActionButtonActive(false);
+    }
+
+    private void SetUpgradeActionButtonActive(bool active)
+    {
+        if (upgradeActionButton == null)
+        {
+            return;
+        }
+
+        upgradeActionButton.gameObject.SetActive(active);
+        upgradeActionButton.interactable = false;
+    }
+
+    private Button GetHairDryerUpgradeButton()
+    {
+        return hairDryerUpgradeButton != null ? hairDryerUpgradeButton : upgradeButton;
+    }
+
+    private void EnsureUpgradeButtons()
+    {
+        Button resolvedHairDryerButton = GetHairDryerUpgradeButton();
+        if (resolvedHairDryerButton == null || coconutTreeUpgradeButton != null)
+        {
+            return;
+        }
+
+        coconutTreeUpgradeButton = Instantiate(resolvedHairDryerButton, resolvedHairDryerButton.transform.parent);
+        coconutTreeUpgradeButton.name = "CoconutTreeUpgradeButton";
+        coconutTreeUpgradeButton.onClick.RemoveAllListeners();
+
+        RectTransform rectTransform = coconutTreeUpgradeButton.GetComponent<RectTransform>();
+        if (rectTransform != null)
+        {
+            rectTransform.anchoredPosition += Vector2.down * 56f;
+        }
+
+        SetButtonText(resolvedHairDryerButton, hairDryerUpgradeText);
+        SetButtonText(coconutTreeUpgradeButton, coconutTreeUpgradeText);
+    }
+
+    private static void SetUpgradeButtonText(Button button, string label, int currentLevel, int maxLevel, int nextCost)
+    {
+        if (currentLevel >= maxLevel)
+        {
+            SetButtonText(button, $"{label}（已满级）");
+            return;
+        }
+
+        SetButtonText(button, $"{label} Lv.{currentLevel + 1}（{nextCost} 椰子）");
+    }
+
+    private static void SetButtonText(Button button, string text)
+    {
+        TMP_Text label = button != null ? button.GetComponentInChildren<TMP_Text>() : null;
+        if (label != null)
+        {
+            label.text = text;
+        }
+    }
+
+    public void ShowNote(string text, Action onClosed = null)
+    {
+        onNoteClosed = onClosed;
+
+        if (noteText != null)
+        {
+            noteText.text = text ?? string.Empty;
+        }
+
+        ShowPanel(notePanel);
+    }
+
+    public void HideNotePanel()
+    {
+        CloseNotePanel();
+    }
+
+    public void ShowEndingPanel()
+    {
+        ShowPanel(endingPanel);
+    }
+
+    public void HideEndingPanel()
+    {
+        CloseEndingPanel();
+    }
+
+    private void CloseNotePanel()//MARKER 将传进来的Action委托赋值给onNoteClosed，然后调用HideActivePanel，最后调用callback
+    {
+        if (activePanel != notePanel)
+        {
+            return;
+        }
+
         Action callback = onNoteClosed;
         onNoteClosed = null;
+        AudioManager.PlayAudio("exited", false);
         HideActivePanel();
         callback?.Invoke();
     }
 
     private void CloseEndingPanel()
     {
-        if (activePanel == endingPanel) HideActivePanel();
+        if (activePanel != endingPanel)
+        {
+            return;
+        }
+
+        HideActivePanel();
     }
 
     private void ShowPanel(GameObject panel)
     {
-        if (panel == null) return;
+        if (panel == null)
+        {
+            return;
+        }
+
         HideAllPanelsImmediate();
         activePanel = panel;
         panel.SetActive(true);
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        UnlockCursor();
     }
 
     private void HideActivePanel()
     {
-        if (activePanel == null) return;
+        if (activePanel == null)
+        {
+            return;
+        }
+
         activePanel.SetActive(false);
         activePanel = null;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        LockCursor();
     }
 
     private void HideAllPanelsImmediate()
     {
-        if (upgradePanel != null) upgradePanel.SetActive(false);
-        if (notePanel != null) notePanel.SetActive(false);
-        if (endingPanel != null) endingPanel.SetActive(false);
+        if (upgradePanel != null)
+        {
+            upgradePanel.SetActive(false);
+        }
+
+        if (notePanel != null)
+        {
+            notePanel.SetActive(false);
+        }
+
+        if (endingPanel != null)
+        {
+            endingPanel.SetActive(false);
+        }
+
         activePanel = null;
+    }
+
+    private static void UnlockCursor()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    private static void LockCursor()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 }
