@@ -285,6 +285,15 @@ public class FirstPersonController : MonoBehaviour
         input = Vector2.ClampMagnitude(input, 1f);
         Vector3 move = transform.right * input.x + transform.forward * input.y;
 
+        if (input != Vector2.zero && characterController.isGrounded)
+        {
+            AudioManager.PlayAudio("walking", true);
+        }
+        else
+        {
+            AudioManager.StopAudio("walking");
+        }
+
         if (characterController.isGrounded)
         {
             if (verticalVelocity < 0f)

@@ -225,6 +225,8 @@ public class SimplePanelUI : MonoBehaviour
         selectedUpgradeNodeIndex = Mathf.Max(0, nodeIndex);
         selectedLayout = layout;
 
+        AudioManager.PlayAudio("click", false);
+
         if (upgradeSubMenu != null)
         {
             upgradeSubMenu.SetActive(true);
