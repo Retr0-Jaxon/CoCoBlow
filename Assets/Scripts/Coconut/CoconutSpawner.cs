@@ -8,13 +8,13 @@ public class CoconutSpawner : MonoBehaviour
     [SerializeField] private CoconutSpawnPoint[] spawnPoints;
 
     [Header("Spawn Settings")]
-    [SerializeField] private float spawnInterval = 8f;
-    [SerializeField] private int maxActiveCoconuts = 5;
+    [SerializeField] private float spawnInterval = 3f;
+    [SerializeField] private int maxActiveCoconuts = 2;
     [SerializeField] private bool spawnOnStart = true;
 
     [Header("Coconut Settings")]
     [SerializeField] private int coconutScoreValue = 1;
-    [SerializeField] private float releaseWindForceThreshold = 120f;
+    [SerializeField] private float releaseWindForceThreshold = 45f;
     [SerializeField] private float releaseImpulse = 2f;
 
     private readonly List<Coconut> activeCoconuts = new List<Coconut>();
@@ -42,7 +42,7 @@ public class CoconutSpawner : MonoBehaviour
     {
         CleanupDestroyedCoconuts();
 
-        if (activeCoconuts.Count >= maxActiveCoconuts)
+        if (CountAttachedCoconuts() >= maxActiveCoconuts)
         {
             return;
         }
@@ -80,6 +80,23 @@ public class CoconutSpawner : MonoBehaviour
         }
     }
 
+    public void CopyGenerationSettingsFrom(CoconutSpawner source)
+    {
+        if (source == null)
+        {
+            return;
+        }
+
+        coconutPrefab = source.coconutPrefab;
+        spawnInterval = source.spawnInterval;
+        maxActiveCoconuts = source.maxActiveCoconuts;
+        spawnOnStart = source.spawnOnStart;
+        coconutScoreValue = source.coconutScoreValue;
+        releaseWindForceThreshold = source.releaseWindForceThreshold;
+        releaseImpulse = source.releaseImpulse;
+        spawnTimer = spawnInterval;
+    }
+
     public void UnregisterCoconut(Coconut coconut)
     {
         activeCoconuts.Remove(coconut);
@@ -87,14 +104,14 @@ public class CoconutSpawner : MonoBehaviour
 
     private void FillAvailableSpawnPoints()
     {
-        while (activeCoconuts.Count < maxActiveCoconuts && TrySpawnCoconut())
+        while (CountAttachedCoconuts() < maxActiveCoconuts && TrySpawnCoconut())
         {
         }
     }
 
     private bool TrySpawnCoconut()
     {
-        if (coconutPrefab == null || activeCoconuts.Count >= maxActiveCoconuts)
+        if (coconutPrefab == null || CountAttachedCoconuts() >= maxActiveCoconuts)
         {
             return false;
         }
@@ -121,6 +138,20 @@ public class CoconutSpawner : MonoBehaviour
         coconut.Initialize(this, point, coconutScoreValue, releaseWindForceThreshold, releaseImpulse);
         activeCoconuts.Add(coconut);
         return true;
+    }
+
+    private int CountAttachedCoconuts()
+    {
+        int count = 0;
+        for (int i = 0; i < activeCoconuts.Count; i++)
+        {
+            if (activeCoconuts[i] != null && activeCoconuts[i].IsAttached)
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     private CoconutSpawnPoint FindFreeSpawnPoint()

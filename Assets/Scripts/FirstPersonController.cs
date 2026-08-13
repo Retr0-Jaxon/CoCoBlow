@@ -27,6 +27,8 @@ public class FirstPersonController : MonoBehaviour
     [SerializeField] private float dropDistance = 1.25f;
     [SerializeField] private float dropHeightOffset = 0.55f;
 
+    public Transform CameraRoot => cameraRoot;
+
     private CharacterController characterController;
     private float verticalVelocity;
     private float cameraPitch;
@@ -53,7 +55,10 @@ public class FirstPersonController : MonoBehaviour
 
     private void OnEnable()
     {
-        LockCursor();
+        if (!IsGameplayBlocked())
+        {
+            LockCursor();
+        }
     }
 
     private void OnDisable()
@@ -74,6 +79,11 @@ public class FirstPersonController : MonoBehaviour
         Mouse mouse = Mouse.current;
 
         if (keyboard == null || mouse == null)
+        {
+            return;
+        }
+
+        if (IsStartMenuBlocking())
         {
             return;
         }
@@ -104,7 +114,7 @@ public class FirstPersonController : MonoBehaviour
 
     private void OnGUI()//TODO 查有什么用
     {
-        if (!Application.isPlaying || Cursor.lockState != CursorLockMode.Locked)
+        if (!Application.isPlaying || Cursor.lockState != CursorLockMode.Locked || IsStartMenuBlocking())
         {
             return;
         }
@@ -197,6 +207,16 @@ public class FirstPersonController : MonoBehaviour
     private bool IsPanelOpen()
     {
         return panelUI != null && panelUI.IsOpen;
+    }
+
+    private static bool IsStartMenuBlocking()
+    {
+        return GameFlowController.Instance != null && GameFlowController.Instance.IsBlockingGameplay;
+    }
+
+    private bool IsGameplayBlocked()
+    {
+        return IsStartMenuBlocking() || IsPanelOpen();
     }
 
     private void DropHairDryer(HairDryer hairDryer)

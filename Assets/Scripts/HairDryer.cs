@@ -184,6 +184,11 @@ public class HairDryer : MonoBehaviour
             return false;
         }
 
+        if (GameFlowController.Instance != null && GameFlowController.Instance.IsBlockingGameplay)
+        {
+            return false;
+        }
+
         return !blowOnLeftMouse || (Mouse.current != null && Mouse.current.leftButton.isPressed);
     }
 

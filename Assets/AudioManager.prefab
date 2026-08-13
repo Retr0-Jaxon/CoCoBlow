@@ -52,7 +52,7 @@ MonoBehaviour:
     volume: 1
     pitch: 1
     loop: 1
-    playOnAwake: 1
+    playOnAwake: 0
     is3D: 0
     israndomPitch: 0
     source: {fileID: 0}
@@ -190,6 +190,17 @@ MonoBehaviour:
     source: {fileID: 0}
   - clip: {fileID: 8300000, guid: 9ddaf0554f0280c47afbb9ea0e23e140, type: 3}
     name: walking
+    outputGroup: {fileID: -8169260936616811781, guid: 9aa3fa9f7dc39b24bb71e4a4d0bc50d7,
+      type: 2}
+    volume: 1
+    pitch: 1
+    loop: 0
+    playOnAwake: 0
+    is3D: 0
+    israndomPitch: 0
+    source: {fileID: 0}
+  - clip: {fileID: 8300000, guid: 59529d8bfac17d14da369e152a4cbb0a, type: 3}
+    name: anomaly
     outputGroup: {fileID: -8169260936616811781, guid: 9aa3fa9f7dc39b24bb71e4a4d0bc50d7,
       type: 2}
     volume: 1

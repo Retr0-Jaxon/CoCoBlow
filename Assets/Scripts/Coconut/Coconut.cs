@@ -1,9 +1,10 @@
+using System.Collections;
 using UnityEngine;
 
 public class Coconut : MonoBehaviour
 {
     private int scoreValue = 1;
-    private float releaseWindForceThreshold = 120f;
+    private float releaseWindForceThreshold = 45f;
     private float releaseImpulse = 2f;
     [SerializeField] private float windIgnoreDurationAfterRelease = 0.3f;
 
@@ -19,10 +20,13 @@ public class Coconut : MonoBehaviour
     private float wobbleIntensity;
     private float wobblePhase;
     private Vector3 wobbleWindDirection = Vector3.forward;
+    private Vector3 intendedWorldScale = Vector3.one;
+    private bool hasTriggeredLandAnomaly;
 
     private Rigidbody body;
     private CoconutSpawner spawner;
     private CoconutSpawnPoint spawnPoint;
+    private Light landFlashLight;
 
     public int ScoreValue => scoreValue;
     public bool IsSubmitted { get; private set; }
@@ -32,6 +36,11 @@ public class Coconut : MonoBehaviour
     private void Awake()
     {
         body = GetComponent<Rigidbody>();
+        intendedWorldScale = transform.lossyScale;
+        if (intendedWorldScale.sqrMagnitude < 0.0001f)
+        {
+            intendedWorldScale = Vector3.one;
+        }
     }
 
     public void Initialize(
@@ -46,6 +55,7 @@ public class Coconut : MonoBehaviour
         scoreValue = score;
         releaseWindForceThreshold = releaseThreshold;
         releaseImpulse = impulse;
+        hasTriggeredLandAnomaly = false;
         AttachToTree();
     }
 
@@ -64,6 +74,7 @@ public class Coconut : MonoBehaviour
         transform.SetParent(spawnPoint.transform, false);
         transform.localPosition = Vector3.zero;
         transform.localRotation = Quaternion.identity;
+        ApplyCompensatedLocalScale();
 
         body.velocity = Vector3.zero;
         body.angularVelocity = Vector3.zero;
@@ -110,7 +121,6 @@ public class Coconut : MonoBehaviour
         windIgnoreUntilTime = Time.time + windIgnoreDurationAfterRelease;
         ResetWobbleState();
 
-        // Restore rest pose before leaving the spawn point so wobble tilt does not carry into physics.
         transform.localPosition = Vector3.zero;
         transform.localRotation = Quaternion.identity;
         transform.SetParent(null, true);
@@ -126,6 +136,117 @@ public class Coconut : MonoBehaviour
         body.isKinematic = false;
         body.useGravity = true;
         body.AddForce(initialImpulse, ForceMode.Impulse);
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (IsAttached || IsSubmitted || hasTriggeredLandAnomaly || body == null || body.isKinematic)
+        {
+            return;
+        }
+
+        bool hitGround = false;
+        for (int i = 0; i < collision.contactCount; i++)
+        {
+            if (collision.GetContact(i).normal.y > 0.35f)
+            {
+                hitGround = true;
+                break;
+            }
+        }
+
+        if (!hitGround)
+        {
+            return;
+        }
+
+        hasTriggeredLandAnomaly = true;
+        if (AnomalyController.Instance != null)
+        {
+            AnomalyController.Instance.HandleCoconutLanded(this);
+        }
+    }
+
+    private Coroutine landFlashRoutine;
+    private Coroutine landBurstRoutine;
+
+    public void PlayLandFlash(float duration, float intensity, float range)
+    {
+        if (landFlashRoutine != null)
+        {
+            StopCoroutine(landFlashRoutine);
+        }
+
+        landFlashRoutine = StartCoroutine(LandFlashRoutine(duration, intensity, range));
+    }
+
+    public void ApplyLandBurstToward(float speed, Transform target)
+    {
+        if (body == null || body.isKinematic || speed <= 0f || target == null)
+        {
+            return;
+        }
+
+        if (landBurstRoutine != null)
+        {
+            StopCoroutine(landBurstRoutine);
+        }
+
+        landBurstRoutine = StartCoroutine(LandBurstRoutine(speed, target));
+    }
+
+    private IEnumerator LandBurstRoutine(float speed, Transform target)
+    {
+        yield return new WaitForFixedUpdate();
+
+        if (body == null || body.isKinematic || IsSubmitted || target == null)
+        {
+            landBurstRoutine = null;
+            yield break;
+        }
+
+        Vector3 toTarget = target.position - transform.position;
+        toTarget.y = 0f;
+        if (toTarget.sqrMagnitude < 0.0001f)
+        {
+            landBurstRoutine = null;
+            yield break;
+        }
+
+        body.velocity = toTarget.normalized * speed;
+        body.angularVelocity = Vector3.zero;
+        landBurstRoutine = null;
+    }
+
+    private IEnumerator LandFlashRoutine(float duration, float intensity, float range)
+    {
+        if (landFlashLight == null)
+        {
+            landFlashLight = gameObject.AddComponent<Light>();
+        }
+
+        landFlashLight.enabled = true;
+        landFlashLight.type = LightType.Point;
+        landFlashLight.color = Color.white;
+        landFlashLight.intensity = intensity;
+        landFlashLight.range = range;
+        landFlashLight.shadows = LightShadows.None;
+
+        yield return new WaitForSeconds(Mathf.Max(0.05f, duration));
+
+        if (landFlashLight != null)
+        {
+            landFlashLight.enabled = false;
+        }
+    }
+
+    private void ApplyCompensatedLocalScale()
+    {
+        Vector3 parentScale = transform.parent != null ? transform.parent.lossyScale : Vector3.one;
+        transform.localScale = new Vector3(
+            intendedWorldScale.x / Mathf.Max(0.0001f, parentScale.x),
+            intendedWorldScale.y / Mathf.Max(0.0001f, parentScale.y),
+            intendedWorldScale.z / Mathf.Max(0.0001f, parentScale.z));
     }
 
     private Vector3 CalculateReleaseImpulse(Vector3 forceDirection)

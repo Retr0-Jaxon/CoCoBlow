@@ -72,6 +72,7 @@ public class DarkZone : MonoBehaviour
         if (simpleHud != null)
         {
             simpleHud.RefreshDarkCountdown(Mathf.Max(0f, remainingTime));
+            simpleHud.ShowDarkVision(true, remainingTime, countdownSeconds);
         }
 
         if (remainingTime <= 0f)
@@ -182,6 +183,7 @@ public class DarkZone : MonoBehaviour
         }
 
         simpleHud.ShowDarkCountdown(showCountdown);
+        simpleHud.ShowDarkVision(showCountdown, remainingTime, countdownSeconds);
         if (showCountdown)
         {
             simpleHud.RefreshDarkCountdown(remainingTime);
