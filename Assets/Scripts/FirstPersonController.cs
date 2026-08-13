@@ -272,6 +272,7 @@ public class FirstPersonController : MonoBehaviour
     {
         if (IsPanelOpen())
         {
+            AudioManager.StopAudio("walking");
             return;
         }
 
