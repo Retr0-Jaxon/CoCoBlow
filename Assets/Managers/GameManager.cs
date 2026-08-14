@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
@@ -25,8 +26,9 @@ public class UpgradeStage
     public HairDryer hairDryerPrefab;
 
     [Header("Coconut Tree")]
-    public float spawnInterval = 8f;
-    public int maxActiveCoconuts = 5;
+    public float spawnInterval = 3f;
+    public int maxActiveCoconuts = 1;
+    public bool spawnExtraTree;
 }
 
 public class GameManager : MonoBehaviour
@@ -38,6 +40,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private SimplePanelUI simplePanelUI;
     [SerializeField] private HairDryer hairDryer;
     [SerializeField] private CoconutSpawner coconutSpawner;
+    [SerializeField] private Transform secondTreeAnchor;
 
     [Header("Notes")]
     [SerializeField] private NoteEntry[] notes;
@@ -45,21 +48,23 @@ public class GameManager : MonoBehaviour
     [Header("Hair Dryer Upgrades")]
     [SerializeField] private UpgradeStage[] hairDryerUpgradeStages =
     {
-        new UpgradeStage { cost = 5, windForce = 120f, windRange = 5.5f, windAngle = 28f, noteIndex = 0 },
-        new UpgradeStage { cost = 12, windForce = 150f, windRange = 7f, windAngle = 34f, noteIndex = 1 },
-        new UpgradeStage { cost = 20, windForce = 180f, windRange = 8f, windAngle = 37f, noteIndex = 2 }
+        new UpgradeStage { cost = 5, windForce = 120f, windRange = 5.5f, windAngle = 20f, noteIndex = 0 },
+        new UpgradeStage { cost = 12, windForce = 150f, windRange = 7f, windAngle = 19f, noteIndex = 1 },
+        new UpgradeStage { cost = 20, windForce = 180f, windRange = 8f, windAngle = 21f, noteIndex = 2 }
     };
 
     [Header("Coconut Tree Upgrades")]
     [SerializeField] private UpgradeStage[] coconutTreeUpgradeStages =
     {
-        new UpgradeStage { cost = 8, spawnInterval = 1.5f, maxActiveCoconuts = 5 },
-        new UpgradeStage { cost = 15, spawnInterval = 1.5f, maxActiveCoconuts = 8 },
-        new UpgradeStage { cost = 25, spawnInterval = 1f, maxActiveCoconuts = 10 }
+        new UpgradeStage { cost = 8, spawnInterval = 3f, maxActiveCoconuts = 4 },
+        new UpgradeStage { cost = 15, spawnInterval = 1.5f, maxActiveCoconuts = 4 },
+        new UpgradeStage { cost = 25, spawnInterval = 1.5f, maxActiveCoconuts = 4, spawnExtraTree = true }
     };
 
+    private readonly List<CoconutSpawner> coconutSpawners = new List<CoconutSpawner>();
     private int hairDryerUpgradeLevel;
     private int coconutTreeUpgradeLevel;
+    private bool hasSpawnedSecondTree;
 
     public int CoconutCount { get; private set; }
 
@@ -108,6 +113,8 @@ public class GameManager : MonoBehaviour
         {
             coconutSpawner = FindObjectOfType<CoconutSpawner>();
         }
+
+        RegisterSpawner(coconutSpawner);
     }
 
     private void Start()
@@ -219,6 +226,11 @@ public class GameManager : MonoBehaviour
 
         notes[index].readForEnding = true;
 
+        if (notes[index].noteObject != null)
+        {
+            notes[index].noteObject.SetActive(false);
+        }
+
         if (index == GetEndingNoteIndex() && simplePanelUI != null)
         {
             simplePanelUI.ShowEndingPanel();
@@ -323,18 +335,85 @@ public class GameManager : MonoBehaviour
 
     private void ApplyCoconutTreeUpgrade(UpgradeStage stage)
     {
-        if (coconutSpawner == null || stage == null)
+        if (stage == null)
         {
             return;
         }
 
-        coconutSpawner.SetSpawnInterval(stage.spawnInterval);
-        coconutSpawner.SetMaxActiveCoconuts(stage.maxActiveCoconuts);
+        if (stage.spawnExtraTree)
+        {
+            SpawnSecondTree();
+        }
+
+        for (int i = 0; i < coconutSpawners.Count; i++)
+        {
+            CoconutSpawner spawner = coconutSpawners[i];
+            if (spawner == null)
+            {
+                continue;
+            }
+
+            spawner.SetSpawnInterval(stage.spawnInterval);
+            spawner.SetMaxActiveCoconuts(stage.maxActiveCoconuts);
+        }
+    }
+
+    private void SpawnSecondTree()
+    {
+        if (hasSpawnedSecondTree || coconutSpawner == null)
+        {
+            return;
+        }
+
+        hasSpawnedSecondTree = true;
+
+        Vector3 spawnPosition = secondTreeAnchor != null
+            ? secondTreeAnchor.position
+            : coconutSpawner.transform.position + coconutSpawner.transform.right * 8f;
+        Quaternion spawnRotation = secondTreeAnchor != null
+            ? secondTreeAnchor.rotation
+            : coconutSpawner.transform.rotation;
+
+        GameObject clone = Instantiate(coconutSpawner.gameObject, spawnPosition, spawnRotation);
+        clone.name = coconutSpawner.gameObject.name + "_2";
+
+        CoconutSpawner extraSpawner = clone.GetComponent<CoconutSpawner>();
+        if (extraSpawner == null)
+        {
+            return;
+        }
+
+        extraSpawner.CopyGenerationSettingsFrom(coconutSpawner);
+
+        Coconut[] clonedCoconuts = extraSpawner.GetComponentsInChildren<Coconut>();
+        for (int i = 0; i < clonedCoconuts.Length; i++)
+        {
+            DestroyImmediate(clonedCoconuts[i].gameObject);
+        }
+
+        CoconutSpawnPoint[] clonedPoints = extraSpawner.GetComponentsInChildren<CoconutSpawnPoint>();
+        for (int i = 0; i < clonedPoints.Length; i++)
+        {
+            clonedPoints[i].ClearOccupant();
+        }
+
+        RegisterSpawner(extraSpawner);
+    }
+
+    private void RegisterSpawner(CoconutSpawner spawner)
+    {
+        if (spawner != null && !coconutSpawners.Contains(spawner))
+        {
+            coconutSpawners.Add(spawner);
+        }
     }
 
     private void OnHairDryerUpgradeEvent(int level)
     {
-        Debug.Log($"吹风机升级事件触发：等级 {level}", this);
+        if (AnomalyController.Instance != null)
+        {
+            AnomalyController.Instance.OnHairDryerUpgraded(level);
+        }
     }
 
     private void AfterUpgradeChanged()

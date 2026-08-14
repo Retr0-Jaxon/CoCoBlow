@@ -11,17 +11,17 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: c8125f70e59179541bffb8c1a091ea1f,
         type: 3}
       propertyPath: m_LocalScale.x
-      value: 1
+      value: 0.3058104
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: c8125f70e59179541bffb8c1a091ea1f,
         type: 3}
       propertyPath: m_LocalScale.y
-      value: 1
+      value: 0.3058104
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: c8125f70e59179541bffb8c1a091ea1f,
         type: 3}
       propertyPath: m_LocalScale.z
-      value: 1
+      value: 0.3058104
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: c8125f70e59179541bffb8c1a091ea1f,
         type: 3}
@@ -173,7 +173,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   windIgnoreDurationAfterRelease: 0.3
   maxWobbleAngle: 60
-  wobbleFrequency: 5
-  wobbleIntensityGain: 0.2
+  wobbleFrequency: 12
+  wobbleIntensityGain: 0.45
   wobbleDecaySpeed: 4
   progressWobbleWeight: 0.45
