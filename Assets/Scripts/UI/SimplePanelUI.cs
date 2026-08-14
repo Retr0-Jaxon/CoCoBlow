@@ -49,9 +49,9 @@ public class SimplePanelUI : MonoBehaviour
     };
     [SerializeField] private string[] coconutTreeDescriptionTexts =
     {
-        "提升椰子树生成速度和树上最大椰子数量。",
-        "进一步提升椰子树生成速度和树上最大椰子数量。",
-        "椰子树达到最大强化，生成更快、容量更大。"
+        "树上同时可生成 4 个椰子。",
+        "缩短椰子生成冷却时间。",
+        "再长出一棵椰子树。"
     };
 
     [Header("Ending Panel")]
@@ -108,7 +108,8 @@ public class SimplePanelUI : MonoBehaviour
 
         if (endingCloseButton != null)
         {
-            endingCloseButton.onClick.AddListener(CloseEndingPanel);
+            endingCloseButton.gameObject.SetActive(false);
+            endingCloseButton.onClick.AddListener(ReturnToTitleFromEnding);
         }
 
         SetUpgradeActionButtonActive(false);
@@ -127,6 +128,17 @@ public class SimplePanelUI : MonoBehaviour
             return;
         }
 
+        if (activePanel == endingPanel)
+        {
+            Mouse mouse = Mouse.current;
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame)
+            {
+                ReturnToTitleFromEnding();
+            }
+
+            return;
+        }
+
         Keyboard keyboard = Keyboard.current;
         if (keyboard == null || !keyboard.escapeKey.wasPressedThisFrame)
         {
@@ -140,10 +152,6 @@ public class SimplePanelUI : MonoBehaviour
         else if (activePanel == upgradePanel)
         {
             CloseUpgradePanel();
-        }
-        else if (activePanel == endingPanel)
-        {
-            CloseEndingPanel();
         }
     }
 
@@ -224,6 +232,8 @@ public class SimplePanelUI : MonoBehaviour
         selectedUpgradeCategory = category;
         selectedUpgradeNodeIndex = Mathf.Max(0, nodeIndex);
         selectedLayout = layout;
+
+        AudioManager.PlayAudio("click", false);
 
         if (upgradeSubMenu != null)
         {
@@ -539,6 +549,10 @@ public class SimplePanelUI : MonoBehaviour
     public void ShowEndingPanel()
     {
         ShowPanel(endingPanel);
+        if (GameFlowController.Instance != null)
+        {
+            GameFlowController.Instance.NotifyEndingShown();
+        }
     }
 
     public void HideEndingPanel()
@@ -562,12 +576,15 @@ public class SimplePanelUI : MonoBehaviour
 
     private void CloseEndingPanel()
     {
-        if (activePanel != endingPanel)
-        {
-            return;
-        }
+        ReturnToTitleFromEnding();
+    }
 
-        HideActivePanel();
+    private static void ReturnToTitleFromEnding()
+    {
+        if (GameFlowController.Instance != null)
+        {
+            GameFlowController.Instance.ReturnToTitle();
+        }
     }
 
     private void ShowPanel(GameObject panel)

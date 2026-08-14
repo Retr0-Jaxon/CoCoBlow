@@ -9,6 +9,9 @@ public class HairDryer : MonoBehaviour
     [SerializeField, Range(1f, 60f)] private float windAngle = 28f;
     [SerializeField] private bool blowOnLeftMouse = true;
 
+    [Header("Input")]
+    [SerializeField] private SimplePanelUI panelUI;
+
     [Header("Pickup")]
     [SerializeField] private Vector3 pickupLocalPosition = new Vector3(0.42f, -0.28f, 0.72f);
     [SerializeField] private Vector3 pickupLocalEulerAngles = Vector3.zero;
@@ -33,6 +36,12 @@ public class HairDryer : MonoBehaviour
     {
         pickupRigidbody = GetComponent<Rigidbody>();
         pickupCollider = GetComponent<Collider>();
+
+        if (panelUI == null)
+        {
+            panelUI = FindObjectOfType<SimplePanelUI>();
+        }
+
         ApplyHeldState();
     }
 
@@ -170,6 +179,16 @@ public class HairDryer : MonoBehaviour
 
     private bool IsMouseBlowPressed()
     {
+        if (panelUI != null && panelUI.IsOpen)
+        {
+            return false;
+        }
+
+        if (GameFlowController.Instance != null && GameFlowController.Instance.IsBlockingGameplay)
+        {
+            return false;
+        }
+
         return !blowOnLeftMouse || (Mouse.current != null && Mouse.current.leftButton.isPressed);
     }
 

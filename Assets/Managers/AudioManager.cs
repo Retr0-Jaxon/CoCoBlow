@@ -65,17 +65,17 @@ public class AudioManager : MonoBehaviour
 
     void InitializeAudio()
     {
-        Debug.Log($"AudioManager: 开始初始化，sounds 列表共有 {sounds.Count} 个音频");
+        //Debug.Log($"AudioManager: 开始初始化，sounds 列表共有 {sounds.Count} 个音频");
         foreach (var sound in sounds)
         {
             if (sound.clip == null)
             {
-                Debug.LogWarning($"AudioManager: 第 {sounds.IndexOf(sound)} 个 Sound 的 Clip 为空，已跳过");
+                //Debug.LogWarning($"AudioManager: 第 {sounds.IndexOf(sound)} 个 Sound 的 Clip 为空，已跳过");
                 continue;
             }
             if (string.IsNullOrEmpty(sound.name))
             {
-                Debug.LogWarning($"AudioManager: 第 {sounds.IndexOf(sound)} 个 Sound 的 Name 为空，已跳过");
+                //Debug.LogWarning($"AudioManager: 第 {sounds.IndexOf(sound)} 个 Sound 的 Name 为空，已跳过");
                 continue;
             }
             GameObject soundObject = new GameObject("Sound_" + sound.name);
@@ -88,14 +88,14 @@ public class AudioManager : MonoBehaviour
             Source.playOnAwake = sound.playOnAwake;
             sound.source = Source;
             audioSourcesDic.Add(sound.name, sound);
-            Debug.Log($"AudioManager: 已创建音频源 Sound_{sound.name} | volume={sound.volume} | loop={sound.loop} | playOnAwake={sound.playOnAwake}");
+            //Debug.Log($"AudioManager: 已创建音频源 Sound_{sound.name} | volume={sound.volume} | loop={sound.loop} | playOnAwake={sound.playOnAwake}");
             if (sound.playOnAwake)
             {
                 Source.Play();
-                Debug.Log($"AudioManager: 开局播放 {sound.name}");
+                //Debug.Log($"AudioManager: 开局播放 {sound.name}");
             }
         }
-        Debug.Log($"AudioManager: 初始化完成，共创建 {audioSourcesDic.Count} 个音频源");
+        //Debug.Log($"AudioManager: 初始化完成，共创建 {audioSourcesDic.Count} 个音频源");
     }
 
 
@@ -127,19 +127,19 @@ public class AudioManager : MonoBehaviour
         {
             if (soundData.source.isPlaying)
             {
-                Debug.Log($"AudioManager: 音频 {soundName} 正在播放，等待播放完成");
+                //Debug.Log($"AudioManager: 音频 {soundName} 正在播放，等待播放完成");
                 return;
             }
             else
             {
                 soundData.source.Play();
-                Debug.Log($"AudioManager: 播放音频 {soundName}");
+                //Debug.Log($"AudioManager: 播放音频 {soundName}");
             }
         }
         else
         {
             soundData.source.Play();
-            Debug.Log($"AudioManager: 播放音频 {soundName}");
+            //Debug.Log($"AudioManager: 播放音频 {soundName}");
         }
     }
     //停止音频api
@@ -147,23 +147,23 @@ public class AudioManager : MonoBehaviour
     {
         if (Instance == null)
         {
-            Debug.LogError("AudioManager: 实例未初始化，无法停止音频");
+            //Debug.LogError("AudioManager: 实例未初始化，无法停止音频");
             return;
         }
         if (!Instance.audioSourcesDic.ContainsKey(soundName))
         {
-            Debug.LogError($"AudioManager: 未找到名为 {soundName} 的音频源");
+            //Debug.LogError($"AudioManager: 未找到名为 {soundName} 的音频源");
             return;
         }
         Instance.audioSourcesDic[soundName].source.Stop();
-        Debug.Log($"AudioManager: 停止音频 {soundName}");
+        //Debug.Log($"AudioManager: 停止音频 {soundName}");
     }
     //3d音效的播放api，我没有选择新建component，而是创建一个临时go跟着跑，所以稍微逻辑复杂，不过我个人认为更好
     public static void PlayAudio3D(string soundName, GameObject fromGO)
     {
         if (fromGO == null)
         {
-            Debug.LogError("AudioManager: 传入的 GameObject 为 null，无法播放3D音频");
+            //Debug.LogError("AudioManager: 传入的 GameObject 为 null，无法播放3D音频");
             return;
         }
         Sound soundData = ResolveSound(soundName, "播放3D音频");
@@ -207,12 +207,12 @@ public class AudioManager : MonoBehaviour
     {
         if (Instance == null)
         {
-            Debug.LogError($"AudioManager: 实例未初始化，无法{callerName}");
+            //Debug.LogError($"AudioManager: 实例未初始化，无法{callerName}");
             return null;
         }
         if (!Instance.audioSourcesDic.ContainsKey(soundName))
         {
-            Debug.LogError($"AudioManager: 未找到名为 {soundName} 的音频源");
+            //Debug.LogError($"AudioManager: 未找到名为 {soundName} 的音频源");
             return null;
         }
         Sound soundData = Instance.audioSourcesDic[soundName];
@@ -221,7 +221,7 @@ public class AudioManager : MonoBehaviour
         {
             float randomPitch = Random.Range(0.8f, 1.2f);
             soundData.source.pitch = randomPitch;
-            Debug.Log($"AudioManager: 音频 {soundName} 随机音调为 {randomPitch}");
+            //Debug.Log($"AudioManager: 音频 {soundName} 随机音调为 {randomPitch}");
         }
         return soundData;
     }
