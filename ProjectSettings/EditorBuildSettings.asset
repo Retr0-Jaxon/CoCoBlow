@@ -8,7 +8,4 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/LRB_Scene.unity
     guid: e5d97675d3c5ac54f8b2eda6283992d3
-  - enabled: 0
-    path: Assets/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
   m_configObjects: {}

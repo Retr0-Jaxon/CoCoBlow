@@ -98,6 +98,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   segmentCount: 24
   fillColor: {r: 0.2, g: 0.75, b: 1, a: 0.22}
+  rangeMaterial: {fileID: 2100000, guid: 876fa28c537e38a4ab0b8d04242edfde, type: 2}
   alwaysShowRange: 0
   fadeDuration: 0.25
   hairDryer: {fileID: 0}

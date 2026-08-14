@@ -6,13 +6,12 @@ using UnityEngine.Rendering;
 [RequireComponent(typeof(MeshRenderer))]
 public class HairDryerRangeVisual : MonoBehaviour
 {
-    private const string RangeMaterialPath = "Assets/Materials/HairDryerRange.mat";
-
     [Header("Shape")]
     [SerializeField] private int segmentCount = 24;
 
     [Header("Look")]
     [SerializeField] private Color fillColor = new Color(0.2f, 0.75f, 1f, 0.22f);
+    [SerializeField] private Material rangeMaterial;
 
     [Header("Display")]
     [SerializeField] private bool alwaysShowRange;
@@ -26,7 +25,6 @@ public class HairDryerRangeVisual : MonoBehaviour
     private Material runtimeMaterial;
     private MaterialPropertyBlock materialPropertyBlock;
     private Mesh coneMesh;
-    private bool ownsRuntimeMaterial;
 
     private float currentAlpha;
     private float fadeVelocity;
@@ -61,10 +59,6 @@ public class HairDryerRangeVisual : MonoBehaviour
             Destroy(coneMesh);
         }
 
-        if (ownsRuntimeMaterial && runtimeMaterial != null)
-        {
-            Destroy(runtimeMaterial);
-        }
     }
 
     private void LateUpdate()
@@ -96,7 +90,7 @@ public class HairDryerRangeVisual : MonoBehaviour
         isVisible = true;
         isFadingOut = false;
         fadeVelocity = 0f;
-        currentAlpha = fillColor.a;
+        currentAlpha = 1f;
         SetRendererEnabled(true);
     }
 
@@ -125,7 +119,7 @@ public class HairDryerRangeVisual : MonoBehaviour
     {
         if (!isFadingOut)
         {
-            currentAlpha = fillColor.a;
+            currentAlpha = 1f;
             return;
         }
 
@@ -232,39 +226,15 @@ public class HairDryerRangeVisual : MonoBehaviour
 
     private void EnsureMaterial()
     {
-        Material sharedMaterial = Resources.Load<Material>(RangeMaterialPath);
-#if UNITY_EDITOR
-        if (sharedMaterial == null)
+        runtimeMaterial = rangeMaterial != null ? rangeMaterial : meshRenderer.sharedMaterial;
+        if (runtimeMaterial != null)
         {
-            sharedMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(RangeMaterialPath);
-        }
-#endif
-
-        if (sharedMaterial != null)
-        {
-            runtimeMaterial = sharedMaterial;
-            ownsRuntimeMaterial = false;
             meshRenderer.sharedMaterial = runtimeMaterial;
             return;
         }
 
-        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
-        if (shader == null)
-        {
-            shader = Shader.Find("Sprites/Default");
-        }
-
-        runtimeMaterial = new Material(shader)
-        {
-            name = "HairDryerRangeRuntime"
-        };
-        ownsRuntimeMaterial = true;
-        runtimeMaterial.SetFloat("_Surface", 1f);
-        runtimeMaterial.SetFloat("_Blend", 0f);
-        runtimeMaterial.SetFloat("_Cull", 2f);
-        runtimeMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-        runtimeMaterial.renderQueue = (int)RenderQueue.Transparent;
-        meshRenderer.sharedMaterial = runtimeMaterial;
+        Debug.LogError("HairDryerRangeVisual requires a range material.", this);
+        meshRenderer.enabled = false;
     }
 
     private void ApplyAlpha(float alpha)
@@ -275,7 +245,7 @@ public class HairDryerRangeVisual : MonoBehaviour
         }
 
         Color color = fillColor;
-        color.a = fillColor.a * alpha;
+        color.a = fillColor.a * Mathf.Clamp01(alpha);
 
         meshRenderer.GetPropertyBlock(materialPropertyBlock);
         materialPropertyBlock.SetColor("_BaseColor", color);
