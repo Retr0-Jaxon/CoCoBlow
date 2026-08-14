@@ -84,6 +84,9 @@ public class GameManager : MonoBehaviour
 
     public bool HasUpgraded => hairDryerUpgradeLevel > 0;
 
+    [Header("Cheat Mode")]
+    [SerializeField] private bool enableCheatMode = false;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -122,6 +125,14 @@ public class GameManager : MonoBehaviour
         HideAllNotes();
         RefreshHud();
         UpdateUpgradeHint();
+    }
+
+    private void Update()
+    {
+        if (enableCheatMode && Input.GetKeyDown(KeyCode.O))
+        {
+            AddCoconut(6);
+        }
     }
 
     public void AddCoconut(int amount = 1)

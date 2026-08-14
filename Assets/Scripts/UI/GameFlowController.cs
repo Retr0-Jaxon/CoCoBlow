@@ -48,7 +48,7 @@ public class GameFlowController : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        StopLoopingGameplayAudio();
+        StopAllAudio();
     }
 
     public void OnClickStart()
@@ -82,7 +82,8 @@ public class GameFlowController : MonoBehaviour
         Time.timeScale = 0f;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        StopLoopingGameplayAudio();
+        AudioManager.PlayAudio("ending", true);
+        StopAllAudio("ending");
     }
 
     public void ReturnToTitle()
@@ -118,10 +119,8 @@ public class GameFlowController : MonoBehaviour
         hairDryer.PickUp(handParent);
     }
 
-    private static void StopLoopingGameplayAudio()
+    private static void StopAllAudio(string excludeName = null)
     {
-        AudioManager.StopAudio("walking");
-        AudioManager.StopAudio("hair_dryer");
-        AudioManager.StopAudio("atmosphere");
+        AudioManager.StopAllAudio(excludeName);
     }
 }

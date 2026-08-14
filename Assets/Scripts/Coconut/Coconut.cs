@@ -215,6 +215,7 @@ public class Coconut : MonoBehaviour
 
         body.velocity = toTarget.normalized * speed;
         body.angularVelocity = Vector3.zero;
+        AudioManager.PlayAudio3D("coco_rolling", gameObject);
         landBurstRoutine = null;
     }
 

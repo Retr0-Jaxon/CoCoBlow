@@ -158,6 +158,38 @@ public class AudioManager : MonoBehaviour
         Instance.audioSourcesDic[soundName].source.Stop();
         //Debug.Log($"AudioManager: 停止音频 {soundName}");
     }
+    //停止所有音频api，遍历配置的音频源和场景中的全部音频源（含3D临时音频），可选排除一个音频
+    public static void StopAllAudio(string excludeName = null)
+    {
+        if (Instance == null)
+        {
+            return;
+        }
+
+        AudioClip excludeClip = null;
+        if (!string.IsNullOrEmpty(excludeName) && Instance.audioSourcesDic.ContainsKey(excludeName))
+        {
+            excludeClip = Instance.audioSourcesDic[excludeName].clip;
+        }
+
+        foreach (var pair in Instance.audioSourcesDic)
+        {
+            if (!string.IsNullOrEmpty(excludeName) && pair.Key == excludeName)
+            {
+                continue;
+            }
+            pair.Value.source.Stop();
+        }
+        AudioSource[] allSources = FindObjectsOfType<AudioSource>();
+        foreach (AudioSource source in allSources)
+        {
+            if (excludeClip != null && source.clip == excludeClip)
+            {
+                continue;
+            }
+            source.Stop();
+        }
+    }
     //3d音效的播放api，我没有选择新建component，而是创建一个临时go跟着跑，所以稍微逻辑复杂，不过我个人认为更好
     public static void PlayAudio3D(string soundName, GameObject fromGO)
     {
