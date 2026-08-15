@@ -8,6 +8,7 @@ public class GameFlowController : MonoBehaviour
     [SerializeField] private GameObject startMenuPanel;
     [SerializeField] private FirstPersonController player;
     [SerializeField] private HairDryer hairDryer;
+    [SerializeField] private SpriteAnimationPlayer spriteAnimationPlayer;
 
     public bool IsBlockingGameplay { get; private set; } = true;
 
@@ -82,6 +83,8 @@ public class GameFlowController : MonoBehaviour
         Time.timeScale = 0f;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+        spriteAnimationPlayer.gameObject.SetActive(true);
+        spriteAnimationPlayer.PlayAnimation(spriteAnimationPlayer.sprites, 24, false);
         AudioManager.PlayAudio("ending", true);
         StopAllAudio("ending");
     }
@@ -93,7 +96,7 @@ public class GameFlowController : MonoBehaviour
         SceneManager.LoadScene(activeScene.name);
     }
 
-    private void EquipHairDryer()
+    private void    EquipHairDryer()
     {
         if (player == null)
         {
