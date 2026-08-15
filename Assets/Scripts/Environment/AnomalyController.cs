@@ -15,6 +15,13 @@ public class AnomalyController : MonoBehaviour
     [Header("Anomaly 3 - Sound")]
     [SerializeField] private string anomalySoundName = "anomaly";
 
+    [Header("Anomaly 4 - Deco Tree Glitch")]
+    [SerializeField] private float decoGlitchDuration = 4f;
+    [SerializeField] private float decoGlitchMinInterval = 0.03f;
+    [SerializeField] private float decoGlitchMaxInterval = 0.12f;
+    [SerializeField] private float decoGlitchMaxAngle = 25f;
+    [SerializeField] private bool enableAnomalyGlitch = true;
+
     public bool FlashOnLand { get; private set; }
     public bool RandomBurstOnLand { get; private set; }
 
@@ -55,6 +62,18 @@ public class AnomalyController : MonoBehaviour
         if (level >= 3 && !string.IsNullOrEmpty(anomalySoundName))
         {
             AudioManager.PlayAudio(anomalySoundName, false);
+        }
+
+        if (level >= 3 && enableAnomalyGlitch)
+        {
+            foreach (DecoTree tree in FindObjectsOfType<DecoTree>())
+            {
+                tree.TriggerRotation(
+                    decoGlitchDuration,
+                    decoGlitchMinInterval,
+                    decoGlitchMaxInterval,
+                    decoGlitchMaxAngle);
+            }
         }
     }
 
